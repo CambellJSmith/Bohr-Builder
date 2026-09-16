@@ -19,23 +19,32 @@ Bohr Builder is a browser-based chemistry game prototype where the player constr
 
 Open `index.html` in a modern browser. No build step is required.
 
-## Run through Godot
+## Run inside Godot
 
-This repository is also a Godot 4.7 project. The Godot version intentionally runs the existing browser application unchanged so the game remains exactly the same implementation rather than maintaining a second copy of the chemistry, physics, rendering, and campaign logic.
+The Godot project embeds the existing Bohr Builder HTML, CSS, and JavaScript directly inside the Godot window using Godot CEF. The browser implementation remains the single source of truth: Godot loads `res://index.html`, so changes to the existing web files are used automatically without maintaining a second implementation.
 
-1. Open the repository root in Godot 4.7.2 or a compatible Godot 4.7 release.
-2. Run the project with `F5` or the normal project run button.
-3. Godot copies the required HTML, CSS, and JavaScript files into `user://bohr_builder_web`.
-4. Godot opens the copied `index.html` in the operating system's default browser and then closes the launcher.
+### One-time dependency setup
 
-Changes made to the existing web files are automatically picked up the next time the Godot project is run.
+Godot does not include a desktop WebView node, so the project uses the Godot CEF GDExtension.
+
+1. Use Godot 4.7.2 or a compatible Godot 4.7 release.
+2. Install Godot CEF `v1.15.4` or newer from the Godot Asset Library or the `dsh0416/godot-cef` releases page.
+3. Ensure the addon is located at `res://addons/godot_cef`.
+4. Restart the Godot editor after installing the native extension.
+5. Run the project with `F5`.
+
+Bohr Builder then renders as an interactive Chromium texture inside the Godot game window. Mouse and keyboard input are handled by the embedded browser; the operating system's external browser is no longer launched.
+
+If the native addon is missing, the project displays an in-window dependency message instead of failing to parse or closing unexpectedly.
+
+The Godot CEF package contains native Chromium binaries and is intentionally not committed to this repository. `addons/godot_cef/` is ignored by Git so each development machine can install the appropriate native package locally.
 
 ## Project structure
 
-- `project.godot` — Godot project configuration
-- `godot/bohr_builder_launcher.tscn` — minimal Godot launch scene
-- `godot/bohr_builder_launcher.gd` — copies and opens the unchanged browser application
-- `index.html` — application markup
+- `project.godot` — Godot project configuration and main scene
+- `godot/bohr_builder.tscn` — fullscreen Godot host scene and dependency fallback UI
+- `godot/bohr_builder.gd` — creates and configures the embedded `CefTexture`
+- `index.html` — application markup loaded directly by Godot CEF
 - `styles.css` — interface and workspace styling
 - `js/dom.js` — DOM references and core constants
 - `js/chemistry-data.js` — elements, atoms, ions, and campaign chemistry data

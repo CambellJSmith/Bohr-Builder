@@ -6,7 +6,7 @@ config_version=5
 [application]
 
 config/name="Bohr Builder"
-run/main_scene="res://godot/bohr_builder.tscn"
+run/main_scene="res://godot/bohr_builder_native.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [display]

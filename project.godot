@@ -6,15 +6,15 @@ config_version=5
 [application]
 
 config/name="Bohr Builder"
-run/main_scene="res://godot/bohr_builder_launcher.tscn"
+run/main_scene="res://godot/bohr_builder.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [display]
 
-window/size/viewport_width=960
-window/size/viewport_height=540
-window/size/window_width_override=960
-window/size/window_height_override=540
+window/size/viewport_width=1500
+window/size/viewport_height=900
+window/size/window_width_override=1500
+window/size/window_height_override=900
 window/stretch/mode="canvas_items"
 
 [rendering]

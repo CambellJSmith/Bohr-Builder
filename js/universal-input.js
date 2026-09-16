@@ -193,7 +193,7 @@ function update_universal_input(dt) {
 }
 
 function keyboard_target_consumes_keys(target) {
-  return target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement || target.isContentEditable;
+  return target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement || (target instanceof HTMLElement && target.isContentEditable);
 }
 
 function set_keyboard_aim_key(code, pressed) {
@@ -220,12 +220,13 @@ window.addEventListener("keydown", (event) => {
   const active = document.activeElement;
   const target_consumes_keys = keyboard_target_consumes_keys(event.target);
   const canvas_has_focus = active === canvas;
+  const button_has_focus = active instanceof HTMLButtonElement;
   if (!target_consumes_keys && (event.code.startsWith("Key") || canvas_has_focus) && set_keyboard_aim_key(event.code, true)) {
     event.preventDefault();
     focus_canvas();
     return;
   }
-  if (target_consumes_keys || active instanceof HTMLButtonElement) {
+  if (target_consumes_keys) {
     return;
   }
   if (mode_prompt_open) {
@@ -238,22 +239,33 @@ window.addEventListener("keydown", (event) => {
   } else if (event.key === "3") {
     set_selected_particle("electron");
   } else if (event.code === "Space") {
+    if (button_has_focus) {
+      return;
+    }
     event.preventDefault();
     if (!event.repeat) {
       focus_canvas();
       perform_canvas_primary_action(true);
     }
-  } else if (event.code === "Enter" && canvas_has_focus) {
-    event.preventDefault();
-    if (!event.repeat) {
-      perform_canvas_primary_action(false);
+  } else if (event.code === "Enter") {
+    if (button_has_focus) {
+      return;
+    }
+    if (canvas_has_focus) {
+      event.preventDefault();
+      if (!event.repeat) {
+        perform_canvas_primary_action(false);
+      }
     }
   } else if (event.code === "KeyI" && !event.repeat) {
+    focus_canvas();
     inspect_atom_at_pointer();
   } else if (event.code === "KeyX" && !event.repeat) {
     scrap_button.click();
+    focus_canvas();
   } else if (event.code === "KeyF" && !event.repeat && game_mode === "freeplay") {
     react_select_button.click();
+    focus_canvas();
   } else if (event.code === "KeyC" && !event.repeat && game_mode === "freeplay") {
     clear_reactants_button.click();
   } else if (event.code === "KeyM" && !event.repeat) {
@@ -318,8 +330,10 @@ window.bohr_controller_action = (action, pressed = true) => {
     inspect_atom_at_pointer();
   } else if (action === "scrap" && pressed) {
     scrap_button.click();
+    focus_canvas();
   } else if (action === "react_select" && pressed && game_mode === "freeplay") {
     react_select_button.click();
+    focus_canvas();
   } else if (action === "particle_previous" && pressed) {
     cycle_selected_particle(-1);
   } else if (action === "particle_next" && pressed) {

@@ -19,8 +19,22 @@ Bohr Builder is a browser-based chemistry game prototype where the player constr
 
 Open `index.html` in a modern browser. No build step is required.
 
+## Run through Godot
+
+This repository is also a Godot 4.7 project. The Godot version intentionally runs the existing browser application unchanged so the game remains exactly the same implementation rather than maintaining a second copy of the chemistry, physics, rendering, and campaign logic.
+
+1. Open the repository root in Godot 4.7.2 or a compatible Godot 4.7 release.
+2. Run the project with `F6` or the normal project run button.
+3. Godot copies the required HTML, CSS, and JavaScript files into `user://bohr_builder_web`.
+4. Godot opens the copied `index.html` in the operating system's default browser and then closes the launcher.
+
+Changes made to the existing web files are automatically picked up the next time the Godot project is run.
+
 ## Project structure
 
+- `project.godot` — Godot project configuration
+- `godot/bohr_builder_launcher.tscn` — minimal Godot launch scene
+- `godot/bohr_builder_launcher.gd` — copies and opens the unchanged browser application
 - `index.html` — application markup
 - `styles.css` — interface and workspace styling
 - `js/dom.js` — DOM references and core constants

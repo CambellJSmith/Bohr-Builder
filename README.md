@@ -71,7 +71,7 @@ Every gameplay and interface action is available by mouse, keyboard, and control
 
 ### Controller
 
-The Godot bridge uses the project's established action naming convention and creates missing mappings without deleting existing custom mappings.
+The controller actions are stored in Project Settings → Input Map using the project's established naming convention, so the mappings are visible and remappable directly in the Godot editor.
 
 - `StickLeft_North`, `StickLeft_South`, `StickLeft_West`, `StickLeft_East` — aim
 - `DPad_North`, `DPad_South`, `DPad_West`, `DPad_East` — navigate interface focus
@@ -90,7 +90,7 @@ The primary action is contextual. In normal construction it fires the selected p
 
 ## Project structure
 
-- `project.godot` — Godot project configuration and main scene
+- `project.godot` — Godot project configuration, controller Input Map, and main scene
 - `godot/bohr_builder.tscn` — fullscreen Godot host scene and dependency fallback UI
 - `godot/bohr_builder.gd` — creates and configures the embedded `CefTexture`
 - `godot/controller_bridge.gd` — owns named Godot controller actions and forwards them to the embedded page

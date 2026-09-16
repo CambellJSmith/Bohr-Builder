@@ -10,14 +10,14 @@ function element_is_available(element) {
 
 function focus_canvas() {
   if (!mode_prompt_open && element_is_available(canvas)) {
-    canvas.focus({ preventScroll: true });
+    canvas.focus();
   }
 }
 
 function focus_first_mode_card() {
   const first_card = mode_cards.find((card) => element_is_available(card));
   if (first_card) {
-    first_card.focus({ preventScroll: true });
+    first_card.focus();
   }
 }
 
@@ -110,7 +110,7 @@ function focus_element_in_direction(direction) {
     return;
   }
   if (!controls.includes(active)) {
-    (mode_prompt_open ? controls[0] : canvas).focus({ preventScroll: true });
+    (mode_prompt_open ? controls[0] : canvas).focus();
     return;
   }
   const source_rect = active.getBoundingClientRect();
@@ -137,7 +137,7 @@ function focus_element_in_direction(direction) {
     }
   }
   if (best_element) {
-    best_element.focus({ preventScroll: true });
+    best_element.focus();
   }
 }
 
@@ -258,6 +258,7 @@ window.addEventListener("keydown", (event) => {
     clear_reactants_button.click();
   } else if (event.code === "KeyM" && !event.repeat) {
     open_mode_overlay();
+    focus_first_mode_card();
   } else if (event.code === "KeyQ" && !event.repeat) {
     cycle_selected_particle(-1);
   } else if (event.code === "KeyE" && !event.repeat) {

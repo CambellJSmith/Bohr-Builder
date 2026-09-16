@@ -58,7 +58,7 @@
 
     <section class="workspace_layout">
       <div class="canvas_panel">
-        <canvas id="game_canvas" width="1100" height="700" aria-label="2D atom construction workspace"></canvas>
+        <canvas id="game_canvas" width="1100" height="700" tabindex="0" aria-label="2D atom construction workspace" aria-describedby="input_help"></canvas>
         <div id="status_banner" class="status_banner" aria-live="polite">choose a game mode to begin</div>
       </div>
 
@@ -96,7 +96,7 @@
               <span>electron</span>
             </button>
           </div>
-          <p class="hint">click or hold to fire. every shot uses the same launch speed. the first proton starts a nucleus where you aim. right-click an atom to inspect it. keys: 1 proton, 2 neutron, 3 electron.</p>
+          <p id="input_help" class="hint">mouse: aim with the pointer, click or hold to fire, right-click to inspect. keyboard: tab navigates controls, wasd or focused-canvas arrows aim, space performs the primary action, i inspects, and 1/2/3 choose particles. controller: left stick aims, d-pad navigates controls, a performs the primary action, b inspects, and lb/rb choose particles.</p>
         </section>
 
         <section id="guided_requirements" class="panel_group guided_only campaign_only">
@@ -114,7 +114,7 @@
             <button id="clear_reactants_button" class="secondary_button" type="button">clear_selection</button>
             <button id="react_button" class="primary_button" type="button" disabled>react_selected</button>
           </div>
-          <p class="hint">turn on select_reactants, then click atoms or ions in the workspace. react_selected only succeeds for a neutral composition that matches a known real compound. built-in compounds work offline; additional formulas can be checked against PubChem when internet access is available.</p>
+          <p class="hint">turn on select_reactants, then use the primary action on atoms or ions in the workspace. react_selected only succeeds for a neutral composition that matches a known real compound. built-in compounds work offline; additional formulas can be checked against PubChem when internet access is available.</p>
         </section>
 
         <section class="panel_group inspect_group">
@@ -144,6 +144,7 @@
   <script src="js/freeplay.js"></script>
   <script src="js/inspector.js"></script>
   <script src="js/render.js"></script>
+  <script src="js/universal-input.js"></script>
   <script src="js/input.js"></script>
 </body>
 </html>

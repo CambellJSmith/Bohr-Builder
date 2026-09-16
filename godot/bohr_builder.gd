@@ -4,6 +4,7 @@ const BROWSER_CLASS_NAME: StringName = &"CefTexture" # Identifies the Godot CEF 
 const BOHR_BUILDER_URL: String = "res://index.html" # Points the embedded browser at the existing application entry point.
 
 @onready var dependency_panel: Control = $DependencyPanel # Displays setup instructions when the native browser addon is unavailable.
+@onready var controller_bridge: BohrControllerBridge = $ControllerBridge # Owns controller input independently from browser rendering.
 
 var _browser: Control = null # Holds the runtime-created embedded browser control.
 
@@ -20,6 +21,7 @@ func _ready() -> void: # Creates the embedded Chromium surface when the native a
 	_configure_browser() # Applies browser settings before the node enters the scene tree.
 	add_child(_browser) # Adds the browser to Godot so CEF can initialize and begin rendering.
 	_browser.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT) # Makes the browser fill the complete Godot window.
+	controller_bridge.configure(_browser) # Routes Godot controller actions into the embedded webpage.
 	dependency_panel.visible = false # Removes the dependency instructions once the embedded browser is active.
 
 func _configure_browser() -> void: # Configures the embedded browser while preserving the current HTML implementation unchanged.

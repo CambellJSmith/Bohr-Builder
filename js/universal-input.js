@@ -21,6 +21,17 @@ function focus_first_mode_card() {
   }
 }
 
+function cycle_mode_focus(direction) {
+  const cards = mode_cards.filter((card) => element_is_available(card));
+  if (cards.length === 0) {
+    return;
+  }
+  const current_index = cards.indexOf(document.activeElement);
+  const base_index = current_index >= 0 ? current_index : 0;
+  const next_index = (base_index + direction + cards.length) % cards.length;
+  cards[next_index].focus();
+}
+
 function cycle_selected_particle(direction) {
   const particle_order = ["proton", "neutron", "electron"];
   const current_index = Math.max(0, particle_order.indexOf(selected_particle));
@@ -221,15 +232,25 @@ window.addEventListener("keydown", (event) => {
   const target_consumes_keys = keyboard_target_consumes_keys(event.target);
   const canvas_has_focus = active === canvas;
   const button_has_focus = active instanceof HTMLButtonElement;
+  if (mode_prompt_open) {
+    if (event.code === "Tab") {
+      event.preventDefault();
+      cycle_mode_focus(event.shiftKey ? -1 : 1);
+    } else if (event.code === "ArrowLeft" || event.code === "ArrowUp") {
+      event.preventDefault();
+      cycle_mode_focus(-1);
+    } else if (event.code === "ArrowRight" || event.code === "ArrowDown") {
+      event.preventDefault();
+      cycle_mode_focus(1);
+    }
+    return;
+  }
   if (!target_consumes_keys && (event.code.startsWith("Key") || canvas_has_focus) && set_keyboard_aim_key(event.code, true)) {
     event.preventDefault();
     focus_canvas();
     return;
   }
   if (target_consumes_keys) {
-    return;
-  }
-  if (mode_prompt_open) {
     return;
   }
   if (event.key === "1") {

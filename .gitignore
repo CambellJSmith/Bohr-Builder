@@ -1,0 +1,5 @@
+# Godot editor cache and generated import data.
+.godot/
+
+# Local desktop export output.
+build/

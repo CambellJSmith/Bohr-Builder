@@ -1,5 +1,5 @@
-class_name ChemistryData # Provides immutable chemistry constants and atom/ion definitions for the native Godot build.
-extends RefCounted # Keeps chemistry data lightweight and independent of the scene tree.
+class_name ChemistryData # Exposes shared chemistry constants and focused native data modules through one stable API.
+extends RefCounted # Keeps chemistry lookup independent of scene nodes.
 
 const WORLD_SIZE: Vector2 = Vector2(1100.0, 700.0) # Matches the original browser simulation dimensions exactly.
 const CANNON_POSITION: Vector2 = Vector2(550.0, 665.0) # Matches the original particle cannon position.
@@ -8,19 +8,37 @@ const SHELL_RADII: Array[float] = [44.0, 68.0, 92.0, 116.0, 140.0, 164.0, 188.0,
 const MAX_ATOMIC_NUMBER: int = 118 # Limits proton count to the recognised periodic table.
 const MAX_ELECTRONS: int = 126 # Preserves the sandbox electron ceiling.
 
-const ELEMENT_SYMBOLS: Array[String] = [ # Maps atomic number directly to an element symbol.
-	"", "H", "He", "Li", "Be", "B", "C", "N", "O", "F", "Ne", "Na", "Mg", "Al", "Si", "P", "S", "Cl", "Ar", "K", "Ca", # Covers atomic numbers zero through twenty.
-	"Sc", "Ti", "V", "Cr", "Mn", "Fe", "Co", "Ni", "Cu", "Zn", "Ga", "Ge", "As", "Se", "Br", "Kr", "Rb", "Sr", "Y", "Zr", # Covers atomic numbers twenty-one through forty.
-	"Nb", "Mo", "Tc", "Ru", "Rh", "Pd", "Ag", "Cd", "In", "Sn", "Sb", "Te", "I", "Xe", "Cs", "Ba", "La", "Ce", "Pr", "Nd", # Covers atomic numbers forty-one through sixty.
-	"Pm", "Sm", "Eu", "Gd", "Tb", "Dy", "Ho", "Er", "Tm", "Yb", "Lu", "Hf", "Ta", "W", "Re", "Os", "Ir", "Pt", "Au", "Hg", # Covers atomic numbers sixty-one through eighty.
-	"Tl", "Pb", "Bi", "Po", "At", "Rn", "Fr", "Ra", "Ac", "Th", "Pa", "U", "Np", "Pu", "Am", "Cm", "Bk", "Cf", "Es", "Fm", # Covers atomic numbers eighty-one through one hundred.
-	"Md", "No", "Lr", "Rf", "Db", "Sg", "Bh", "Hs", "Mt", "Ds", "Rg", "Cn", "Nh", "Fl", "Mc", "Lv", "Ts", "Og" # Covers atomic numbers one hundred one through one hundred eighteen.
-] # Ends the element-symbol lookup.
+static var ATOMS: Dictionary = SpeciesData.atoms() # Provides every neutral isotope and campaign monatomic ion by its original key.
+static var ION_CATIONS: Array[Dictionary] = SpeciesData.cations() # Provides positive-ion notation data in the original order.
+static var ION_ANIONS: Array[Dictionary] = SpeciesData.anions() # Provides negative-ion notation data in the original order.
 
-const ELEMENT_NAMES: Array[String] = [ # Maps atomic number directly to the official element name.
-	"", "hydrogen", "helium", "lithium", "beryllium", "boron", "carbon", "nitrogen", "oxygen", "fluorine", "neon", "sodium", "magnesium", "aluminium", "silicon", "phosphorus", "sulfur", "chlorine", "argon", "potassium", "calcium", # Covers atomic numbers zero through twenty.
-	"scandium", "titanium", "vanadium", "chromium", "manganese", "iron", "cobalt", "nickel", "copper", "zinc", "gallium", "germanium", "arsenic", "selenium", "bromine", "krypton", "rubidium", "strontium", "yttrium", "zirconium", # Covers atomic numbers twenty-one through forty.
-	"niobium", "molybdenum", "technetium", "ruthenium", "rhodium", "palladium", "silver", "cadmium", "indium", "tin", "antimony", "tellurium", "iodine", "xenon", "caesium", "barium", "lanthanum", "cerium", "praseodymium", "neodymium", # Covers atomic numbers forty-one through sixty.
-	"promethium", "samarium", "europium", "gadolinium", "terbium", "dysprosium", "holmium", "erbium", "thulium", "ytterbium", "lutetium", "hafnium", "tantalum", "tungsten", "rhenium", "osmium", "iridium", "platinum", "gold", "mercury", # Covers atomic numbers sixty-one through eighty.
-	"thallium", "lead", "bismuth", "polonium", "astatine", "radon", "francium", "radium", "actinium", "thorium", "protactinium", "uranium", "neptunium", "plutonium", "americium", "curium", "berkelium", "californium", "einsteinium", "fermium", # Covers atomic numbers eighty-one through one hundred.
-	"mendelevium", "nobelium", "lawrencium", "rutherfordium", "dubnium", "seaborgium", "bohrium", "hassium", "meitnerium", "darmstadtium", "roentgenium", "copernicium", "nihonium", "flerovium", "moscovium", "liv
+static func neutral_level_specs() -> Array[Dictionary]: # Returns the complete curated neutral recipe catalogue.
+	return NeutralRecipes.specs() # Delegates recipe storage to its focused data module.
+
+static func element_symbol(protons: int) -> String: # Converts an atomic number into its recognised element symbol.
+	if protons >= 0 and protons < ElementSymbols.VALUES.size(): # Handles all recognised elements plus the empty zero index.
+		return ElementSymbols.VALUES[protons] # Returns the direct atomic-number lookup.
+	return "Z%d" % protons # Provides a defensive fallback for unsupported proton counts.
+
+static func element_name(protons: int) -> String: # Converts an atomic number into its official element name.
+	if protons >= 0 and protons < ElementNamesLow.VALUES.size(): # Handles elements zero through sixty.
+		return ElementNamesLow.VALUES[protons] # Returns the direct low-table entry.
+	if protons >= ElementNamesMid.FIRST_ATOMIC_NUMBER and protons < ElementNamesUpper.FIRST_ATOMIC_NUMBER: # Handles elements sixty-one through ninety.
+		return ElementNamesMid.VALUES[protons - ElementNamesMid.FIRST_ATOMIC_NUMBER] # Returns the offset middle-table entry.
+	if protons >= ElementNamesUpper.FIRST_ATOMIC_NUMBER and protons <= MAX_ATOMIC_NUMBER: # Handles elements ninety-one through one hundred eighteen.
+		return ElementNamesUpper.VALUES[protons - ElementNamesUpper.FIRST_ATOMIC_NUMBER] # Returns the offset upper-table entry.
+	return "element %d" % protons # Provides a defensive fallback outside the recognised table.
+
+static func subscript_number(value: int) -> String: # Renders positive integer stoichiometric counts as conventional Unicode subscripts.
+	const DIGITS: String = "₀₁₂₃₄₅₆₇₈₉" # Maps ASCII digit index to Unicode subscript glyph.
+	var result: String = "" # Builds the complete subscript string.
+	for character: String in str(value): # Converts each decimal digit independently.
+		result += DIGITS.substr(int(character), 1) # Appends the corresponding Unicode subscript.
+	return result # Returns the chemistry-ready count text.
+
+static func superscript_charge(charge: int) -> String: # Renders a monatomic ion charge in compact chemistry notation.
+	if charge == 0: # Neutral species have no charge suffix.
+		return "" # Returns no notation.
+	var magnitude: int = absi(charge) # Normalizes the charge magnitude.
+	var number: String = "" if magnitude == 1 else str(magnitude).replace("2", "²").replace("3", "³") # Omits a magnitude of one and preserves original superscript handling.
+	return number + ("⁺" if charge > 0 else "⁻") # Appends positive or negative superscript sign.

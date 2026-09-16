@@ -27,10 +27,9 @@ var _browser: Control = null # Stores the embedded Chromium control that receive
 func _ready() -> void: # Keeps controller polling disabled until the browser host supplies a valid browser instance.
 	set_process(false) # Avoids polling input before the embedded page can receive it.
 
-func configure(browser: Control) -> void: # Connects this input component to the embedded browser and prepares controller actions.
+func configure(browser: Control) -> void: # Connects this input component to the embedded browser.
 	_browser = browser # Retains the browser instance used for JavaScript input forwarding.
-	_ensure_input_map() # Creates the project input actions when they are not already present.
-	set_process(true) # Begins controller polling after setup is complete.
+	set_process(true) # Begins controller polling after the browser is ready.
 
 func _process(delta: float) -> void: # Polls analog input and forwards controller actions into the embedded page each frame.
 	if _browser == null or not is_instance_valid(_browser): # Stops cleanly when the browser instance no longer exists.
@@ -70,46 +69,3 @@ func _eval_web(script: String) -> void: # Executes a small semantic input comman
 	if _browser == null or not is_instance_valid(_browser) or not _browser.has_method("eval"): # Validates the native browser interface before calling it.
 		return # Ignores input safely while the native browser is unavailable.
 	_browser.call("eval", script) # Uses Godot CEF's JavaScript evaluator without hard-typing the external extension class.
-
-func _ensure_input_map() -> void: # Creates controller actions using the project's established input naming convention.
-	_ensure_axis_action(STICK_LEFT_NORTH, JOY_AXIS_LEFT_Y, -1.0, 0.20) # Maps upward left-stick motion to the named aim action.
-	_ensure_axis_action(STICK_LEFT_SOUTH, JOY_AXIS_LEFT_Y, 1.0, 0.20) # Maps downward left-stick motion to the named aim action.
-	_ensure_axis_action(STICK_LEFT_WEST, JOY_AXIS_LEFT_X, -1.0, 0.20) # Maps leftward left-stick motion to the named aim action.
-	_ensure_axis_action(STICK_LEFT_EAST, JOY_AXIS_LEFT_X, 1.0, 0.20) # Maps rightward left-stick motion to the named aim action.
-	_ensure_button_action(DPAD_NORTH, JOY_BUTTON_DPAD_UP) # Maps the controller D-pad upward direction.
-	_ensure_button_action(DPAD_SOUTH, JOY_BUTTON_DPAD_DOWN) # Maps the controller D-pad downward direction.
-	_ensure_button_action(DPAD_WEST, JOY_BUTTON_DPAD_LEFT) # Maps the controller D-pad left direction.
-	_ensure_button_action(DPAD_EAST, JOY_BUTTON_DPAD_RIGHT) # Maps the controller D-pad right direction.
-	_ensure_button_action(BUTTON_A, JOY_BUTTON_A) # Maps the controller primary face button.
-	_ensure_button_action(BUTTON_B, JOY_BUTTON_B) # Maps the controller secondary face button.
-	_ensure_button_action(BUTTON_X, JOY_BUTTON_X) # Maps the controller left face button.
-	_ensure_button_action(BUTTON_Y, JOY_BUTTON_Y) # Maps the controller top face button.
-	_ensure_button_action(BUTTON_START, JOY_BUTTON_START) # Maps the controller start/menu button.
-	_ensure_button_action(BUTTON_BACK, JOY_BUTTON_BACK) # Maps the controller back/view button.
-	_ensure_button_action(BUTTON_LB, JOY_BUTTON_LEFT_SHOULDER) # Maps the controller left shoulder button.
-	_ensure_button_action(BUTTON_RB, JOY_BUTTON_RIGHT_SHOULDER) # Maps the controller right shoulder button.
-	_ensure_axis_action(BUTTON_LT, JOY_AXIS_TRIGGER_LEFT, 1.0, 0.55) # Maps the left trigger as a digital level-navigation action.
-	_ensure_axis_action(BUTTON_RT, JOY_AXIS_TRIGGER_RIGHT, 1.0, 0.55) # Maps the right trigger as a digital level-navigation action.
-	_ensure_button_action(BUTTON_L3, JOY_BUTTON_LEFT_STICK) # Maps the left-stick click.
-	_ensure_button_action(BUTTON_R3, JOY_BUTTON_RIGHT_STICK) # Maps the right-stick click.
-
-func _ensure_button_action(action_name: StringName, button_index: int) -> void: # Adds one controller button binding without replacing existing project mappings.
-	_ensure_action(action_name, 0.50) # Ensures the named action exists before adding its physical event.
-	var input_event: InputEventJoypadButton = InputEventJoypadButton.new() # Creates a reusable Godot joypad-button event description.
-	input_event.device = -1 # Allows the binding to work with any connected controller.
-	input_event.button_index = button_index # Associates the action with the requested SDL-standardized controller button.
-	if not InputMap.action_has_event(action_name, input_event): # Avoids duplicate bindings when the scene is restarted.
-		InputMap.action_add_event(action_name, input_event) # Adds the controller event to the named action.
-
-func _ensure_axis_action(action_name: StringName, axis_index: int, axis_value: float, deadzone: float) -> void: # Adds one directional axis binding without replacing existing project mappings.
-	_ensure_action(action_name, deadzone) # Ensures the named action exists with an appropriate analog threshold.
-	var input_event: InputEventJoypadMotion = InputEventJoypadMotion.new() # Creates a Godot joypad-axis event description.
-	input_event.device = -1 # Allows the binding to work with any connected controller.
-	input_event.axis = axis_index # Associates the action with the requested standardized controller axis.
-	input_event.axis_value = axis_value # Associates the action with the requested positive or negative axis direction.
-	if not InputMap.action_has_event(action_name, input_event): # Avoids duplicate bindings when the scene is restarted.
-		InputMap.action_add_event(action_name, input_event) # Adds the controller axis event to the named action.
-
-func _ensure_action(action_name: StringName, deadzone: float) -> void: # Creates a named input action only when the project does not already define it.
-	if not InputMap.has_action(action_name): # Preserves any custom project mapping that already exists.
-		InputMap.add_action(action_name, deadzone) # Adds the action with its intended analog deadzone.

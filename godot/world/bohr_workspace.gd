@@ -231,7 +231,7 @@ func _draw_bond_between(a: Vector2, b: Vector2, order: int, alpha: float) -> voi
 	var offset: Vector2 = b - a # Calculates bond direction.
 	var length: float = maxf(1.0, offset.length()) # Avoids division by zero.
 	var normal: Vector2 = Vector2(-offset.y, offset.x) / length # Calculates unit perpendicular for multiple bond lines.
-	var offsets: Array[float] = [-8.0, 0.0, 8.0] if order == 3 else [-5.0, 5.0] if order == 2 else [0.0] # Matches browser multiple-bond spacing.
+	var offsets: PackedFloat32Array = PackedFloat32Array([-8.0, 0.0, 8.0]) if order == 3 else PackedFloat32Array([-5.0, 5.0]) if order == 2 else PackedFloat32Array([0.0]) # Keeps bond offsets strongly typed at runtime.
 	for lateral: float in offsets: # Draws each parallel bond stroke.
 		draw_line(a + normal * lateral, b + normal * lateral, Color(0.9020, 0.9176, 0.9373, alpha), 5.0 if order == 1 else 3.5, true) # Draws one antialiased bond line.
 

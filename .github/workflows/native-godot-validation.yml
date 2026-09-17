@@ -50,6 +50,17 @@ jobs:
             fi
           done < <(find godot -type f -name '*.gd' | sort)
 
+      - name: Render Bond Smoke Test
+        shell: bash
+        run: |
+          set -o pipefail
+          /tmp/godot/Godot_v4.7.2-stable_linux.x86_64 \
+            --headless --path . --script res://godot/tests/bond_render_smoke.gd 2>&1 | tee /tmp/godot-bond-smoke.log
+          if grep -E "SCRIPT ERROR:|Parse [Ee]rror|Failed to load script|Trying to assign an array|ERROR:" /tmp/godot-bond-smoke.log; then
+            echo "Godot reported a runtime error while rendering reaction bonds."
+            exit 1
+          fi
+
       - name: Boot Native Main Scene
         shell: bash
         run: |

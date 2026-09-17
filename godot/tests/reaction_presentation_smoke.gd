@@ -16,7 +16,7 @@ func _initialize() -> void: # Instantiates the real native scene and defers reac
 	current_scene = _controller # Makes the production game discoverable through SceneTree.current_scene just like a normal launch.
 	call_deferred("_run_test_after_ready") # Defers all interaction until controller @onready references, systems, and campaign data are initialized.
 
-func _run_test_after_ready() -> void: # Triggers a production-style successful result and verifies generated effects, staged completion data, and overlay progression.
+func _run_test_after_ready() -> void: # Triggers a production-style successful result and verifies generated effects, staged completion data, overlay progression, and immediate dismissal.
 	_presenter = root.get_node_or_null("ReactionPresentation") as ReactionPresentationLayer # Resolves the autoload registered by project.godot.
 	if _presenter == null: # Rejects a missing presentation autoload.
 		_fail("ReactionPresentation autoload is missing.") # Reports the integration failure.
@@ -32,6 +32,7 @@ func _run_test_after_ready() -> void: # Triggers a production-style successful r
 	if _controller.next_button.get_parent() != completion_overlay: # Requires runtime composition to remove progression from the right sidebar.
 		_fail("Next Level button was not moved into the completion overlay.") # Reports the stale sidebar placement.
 		return # Stops before testing staged presentation.
+	_controller.campaign_system.complete_level() # Mirrors production completion by unlocking the next campaign level before the presentation layer reveals progression.
 	_presenter.call("_finish_campaign_reaction") # Starts the production completion flash, particles, generated chime, result reveal, and progression timeline.
 	if _presenter._completion_formula != String(_controller.campaign_system.current_level()["formula"]): # Confirms the visible reveal uses authoritative campaign chemistry data.
 		_fail("Reaction presentation formula does not match the completed campaign target.") # Reports incorrect result capture.
@@ -75,8 +76,20 @@ func _run_test_after_ready() -> void: # Triggers a production-style successful r
 		return # Stops the smoke test.
 	_presenter.queue_redraw() # Requests a real CanvasItem draw pass for the completion flash, particles, result card, and button backing.
 	await process_frame # Allows Godot to execute the production presentation draw callback once.
+	_controller.call("_handle_button_action", &"NextButton") # Activates the same semantic Next Level path used by mouse, keyboard, and controller input.
+	_presenter.call("_process", 0.0) # Runs the post-input presentation pass that must clear the completion state before the next draw.
+	if _controller.state.current_level_index != 1: # Requires progression to advance from level one to level two.
+		_fail("Next Level did not advance the campaign after completion.") # Reports broken progression while testing dismissal.
+		return # Stops the smoke test.
+	if _presenter._completion_elapsed >= 0.0 or not _presenter._completion_formula.is_empty() or not _presenter._completion_heading.is_empty(): # Requires all staged completion content to be cleared immediately after progression.
+		_fail("Completion presentation state remained active after Next Level was pressed.") # Reports the stale completion-card regression.
+		return # Stops the smoke test.
+	if _controller.next_button.visible or not _controller.next_button.disabled: # Requires the old progression control to disappear with the dismissed result card.
+		_fail("Next Level button remained visible after advancing to the next campaign level.") # Reports stale overlay interaction.
+		return # Stops the smoke test.
+	await process_frame # Allows the queued redraw from completion dismissal to replace the old CanvasItem draw commands.
 	await process_frame # Allows one additional frame so any deferred CanvasItem/runtime errors surface before success.
-	quit(0) # Reports success after production reaction presentation executes without runtime errors.
+	quit(0) # Reports success after production reaction presentation executes and dismisses without runtime errors.
 
 func _fail(message: String) -> void: # Reports one deterministic presentation regression and exits non-zero.
 	push_error(message) # Writes the exact failed invariant to the Godot Actions log.

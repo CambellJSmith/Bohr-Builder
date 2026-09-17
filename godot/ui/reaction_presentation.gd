@@ -177,6 +177,7 @@ func _reset_completion() -> void: # Clears transient result presentation without
 	_completion_has_next_level = false # Clears campaign progression availability.
 	_next_button_focus_assigned = false # Allows the next successful campaign completion to focus its own progression button once.
 	_burst_particles.clear() # Removes any remaining success particles immediately.
+	queue_redraw() # Invalidates the cached CanvasItem draw commands so a dismissed completion card vanishes in the same frame.
 
 func _hide_next_level_button() -> void: # Returns the shared native progression control to a completely hidden and non-interactive state.
 	_next_button_focus_assigned = false # Allows a future staged reveal to assign focus once.

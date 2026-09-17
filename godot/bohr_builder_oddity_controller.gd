@@ -3,6 +3,8 @@ extends BohrBuilderController # Preserves the established gameplay controller wh
 
 const BUTTON_INSPECT: StringName = &"Button_Inspect" # Uses a dedicated game-specific action for atom inspection instead of overloading Button_B.
 
+var _oddity_settings_service: OdditySettingsService = null # Caches the typed application service without creating a compile-time dependency on its autoload singleton name.
+
 func _handle_key_event(event: InputEventKey) -> void: # Routes canonical keyboard equivalents through semantic Oddity actions before legacy game-specific shortcuts.
 	if event.is_action_pressed(BUTTON_B): # Maps the standard negative action to back, cancel, or return behavior.
 		_handle_negative_action() # Cancels the most immediate reversible UI or interaction state.
@@ -60,12 +62,13 @@ func _process_aim_input(delta: float) -> void: # Applies keyboard and controller
 		workspace.grab_focus() # Keeps visible focus on the construction workspace while aiming.
 		_move_aim(keyboard_axis, KEYBOARD_AIM_SPEED, delta) # Uses the authored keyboard speed without applying controller sensitivity.
 		return # Skips the combined action vector while a keyboard direction is held.
-	var deadzone: float = OdditySettings.controller_deadzone() # Reads the shared analogue deadzone from the application settings service.
+	var settings_service: OdditySettingsService = _get_oddity_settings_service() # Resolves the typed application service without relying on an injected autoload identifier.
+	var deadzone: float = settings_service.controller_deadzone() if settings_service != null else SharedSettings.DEFAULT_CONTROLLER_DEADZONE # Reads the shared analogue deadzone or the canonical fallback.
 	var controller_axis: Vector2 = Input.get_vector(STICK_LEFT_WEST, STICK_LEFT_EAST, STICK_LEFT_NORTH, STICK_LEFT_SOUTH, deadzone) # Reads the canonical semantic left-stick vector with one centralized deadzone.
 	if controller_axis.length_squared() <= 0.0001: # Ignores residual analogue noise inside the validated deadzone.
 		return # Leaves aim unchanged when no meaningful controller intent exists.
 	workspace.grab_focus() # Keeps controller aim anchored to the construction workspace.
-	var sensitivity: float = OdditySettings.controller_sensitivity() # Reads the shared controller sensitivity multiplier.
+	var sensitivity: float = settings_service.controller_sensitivity() if settings_service != null else SharedSettings.DEFAULT_SENSITIVITY # Reads the shared controller multiplier or the canonical fallback.
 	_move_aim(controller_axis, CONTROLLER_AIM_SPEED * sensitivity, delta) # Scales the authored controller aim speed exactly once.
 
 func _route_left_stick_navigation_event(event: InputEvent) -> bool: # Converts canonical left-stick actions into interface navigation when the workspace is not the active target.
@@ -113,3 +116,8 @@ func _close_system_menu() -> void: # Closes the modal without resetting or chang
 	state.mode_prompt_open = false # Resumes the existing gameplay simulation state.
 	mode_overlay.visible = false # Hides the modal system/mode chooser.
 	workspace.grab_focus() # Restores keyboard and controller focus to the primary construction surface.
+
+func _get_oddity_settings_service() -> OdditySettingsService: # Resolves and caches the application service by its stable autoload tree path.
+	if _oddity_settings_service == null or not is_instance_valid(_oddity_settings_service): # Refreshes the cache after startup ordering or unusual tree replacement.
+		_oddity_settings_service = get_node_or_null(^"/root/OdditySettings") as OdditySettingsService # Uses a NodePath lookup so standalone script parsing does not require the autoload identifier.
+	return _oddity_settings_service # Returns the cached typed service or null when running outside the full application tree.

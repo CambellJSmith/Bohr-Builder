@@ -11,6 +11,8 @@ config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [autoload]
 
+SoundEffects="*res://godot/audio/sound_effects.gd"
+SoundEffectRouter="*res://godot/audio/sound_effect_router.gd"
 ResponsiveLayout="*res://godot/ui/responsive_layout.gd"
 ModeClickRouter="*res://godot/ui/mode_click_router.gd"
 FormulaModePresenter="*res://godot/ui/campaign_mode_presenter.gd"

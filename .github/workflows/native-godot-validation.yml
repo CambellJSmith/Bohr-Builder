@@ -36,11 +36,15 @@ jobs:
             exit 1
           fi
 
-      - name: Check Every GDScript
+      - name: Check Every Standalone GDScript
         shell: bash
         run: |
           set -euo pipefail
           while IFS= read -r script; do
+            if [[ "${script}" == "godot/audio/sound_effect_router.gd" || "${script}" == "godot/tests/sound_effects_smoke.gd" ]]; then
+              echo "Skipping standalone check for ${script}; it intentionally depends on project autoloads and is covered by project import plus the dedicated runtime sound-effects smoke test."
+              continue
+            fi
             echo "Checking ${script}"
             /tmp/godot/Godot_v4.7.2-stable_linux.x86_64 \
               --headless --path . --check-only --script "res://${script}" 2>&1 | tee /tmp/godot-script.log
@@ -80,6 +84,17 @@ jobs:
             --headless --path . --quit-after 7 --script res://godot/tests/reaction_presentation_smoke.gd 2>&1 | tee /tmp/godot-reaction-presentation.log
           if grep -E "SCRIPT ERROR:|Parse [Ee]rror|Failed to load script|ERROR:" /tmp/godot-reaction-presentation.log; then
             echo "Godot reported a reaction presentation regression."
+            exit 1
+          fi
+
+      - name: Sound Effects Smoke Test
+        shell: bash
+        run: |
+          set -o pipefail
+          /tmp/godot/Godot_v4.7.2-stable_linux.x86_64 \
+            --headless --path . --quit-after 7 res://godot/tests/sound_effects_smoke.tscn 2>&1 | tee /tmp/godot-sound-effects.log
+          if grep -E "SCRIPT ERROR:|Parse [Ee]rror|Failed to load script|ERROR:" /tmp/godot-sound-effects.log; then
+            echo "Godot reported a generated sound-effects regression."
             exit 1
           fi
 

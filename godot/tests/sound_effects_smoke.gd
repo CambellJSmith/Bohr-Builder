@@ -13,7 +13,7 @@ func _ready() -> void: # Instantiates the real native scene after project autolo
 	if _controller == null: # Rejects an unexpected root type.
 		_fail("Native main scene did not instantiate as BohrBuilderController for sound validation.") # Reports the root mismatch.
 		return # Stops the smoke test.
-	add_child(_controller) # Adds the production game beneath the smoke-test scene so its normal ready path runs.
+	get_tree().root.add_child(_controller) # Adds the production game directly beneath the SceneTree root so it can become the active current scene.
 	get_tree().current_scene = _controller # Makes the production game discoverable exactly as a normal launch does for observer autoloads.
 	call_deferred("_run_test_after_ready") # Defers checks until controller @onready references and audio autoload startup have completed.
 

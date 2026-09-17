@@ -31,10 +31,24 @@ jobs:
           set -o pipefail
           /tmp/godot/Godot_v4.7.2-stable_linux.x86_64 \
             --headless --editor --path . --quit --verbose 2>&1 | tee /tmp/godot-import.log
-          if grep -E "SCRIPT ERROR:|Parse Error:|Could not parse global class|Could not resolve class|Could not resolve external class member" /tmp/godot-import.log; then
+          if grep -E "SCRIPT ERROR:|Parse [Ee]rror|Failed to load script|Could not parse global class|Could not resolve class|Could not resolve external class member" /tmp/godot-import.log; then
             echo "Godot reported a script parser/class resolution error during import."
             exit 1
           fi
+
+      - name: Check Every GDScript
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r script; do
+            echo "Checking ${script}"
+            /tmp/godot/Godot_v4.7.2-stable_linux.x86_64 \
+              --headless --path . --check-only --script "res://${script}" 2>&1 | tee /tmp/godot-script.log
+            if grep -E "SCRIPT ERROR:|Parse [Ee]rror|Failed to load script|Could not parse global class|Could not resolve class|Could not resolve external class member" /tmp/godot-script.log; then
+              echo "Godot reported a script parser/class resolution error in ${script}."
+              exit 1
+            fi
+          done < <(find godot -type f -name '*.gd' | sort)
 
       - name: Boot Native Main Scene
         shell: bash
@@ -42,7 +56,7 @@ jobs:
           set -o pipefail
           /tmp/godot/Godot_v4.7.2-stable_linux.x86_64 \
             --headless --path . --quit-after 5 --verbose 2>&1 | tee /tmp/godot-boot.log
-          if grep -E "SCRIPT ERROR:|Parse Error:|Could not parse global class|Could not resolve class|Could not resolve external class member" /tmp/godot-boot.log; then
+          if grep -E "SCRIPT ERROR:|Parse [Ee]rror|Failed to load script|Could not parse global class|Could not resolve class|Could not resolve external class member" /tmp/godot-boot.log; then
             echo "Godot reported a script parser/class resolution error while booting the main scene."
             exit 1
           fi

@@ -1,9 +1,12 @@
-class_name ReactionPresentationLayer # Adds native reaction charge-up, completion particles, staged result cards, and synthesized audio without changing chemistry rules.
-extends Control # Draws a non-interactive presentation layer over the existing native interface.
+class_name ReactionPresentationLayer # Adds native reaction charge-up, completion particles, staged result cards, progression controls, and synthesized audio without changing chemistry rules.
+extends Control # Draws the non-interactive visual presentation layer while positioning the existing native progression button over it.
 
 const CAMPAIGN_CENTER: Vector2 = Vector2(550.0, 294.0) # Matches ChemistryData.WORLD_SIZE * Vector2(0.5, 0.42) without recalculating it every draw call.
 const RESULT_CARD_WIDTH: float = 500.0 # Caps the completion card so it stays readable without dominating the workspace.
-const RESULT_CARD_HEIGHT: float = 154.0 # Reserves enough vertical space for staged formula, name, and completion text.
+const RESULT_CARD_TEXT_HEIGHT: float = 154.0 # Reserves enough vertical space for staged formula, name, and completion text when no progression button is needed.
+const RESULT_CARD_BUTTON_HEIGHT: float = 214.0 # Adds a dedicated footer area for the campaign next-level button.
+const NEXT_BUTTON_REVEAL_TIME: float = 1.34 # Reveals progression only after the formula, product name, completion heading, and unlock text have appeared.
+const NEXT_BUTTON_FADE_DURATION: float = 0.22 # Fades the native button in quickly without competing with the earlier chemistry result beats.
 const BURST_PARTICLE_COUNT: int = 42 # Provides a substantial but inexpensive completion burst.
 const CHARGE_RING_COUNT: int = 3 # Draws several converging rings during the reaction build-up.
 const AUDIO_MIX_RATE: int = 44100 # Uses standard PCM output for the generated native sound effects.
@@ -24,15 +27,17 @@ var _completion_name: String = "" # Stores the successful product name for the s
 var _completion_heading: String = "" # Stores Level Complete, Campaign Complete, or Reaction Complete text.
 var _completion_subheading: String = "" # Stores the progression message shown after the main completion heading.
 var _completion_is_campaign: bool = false # Distinguishes campaign completion from freeplay reaction presentation.
+var _completion_has_next_level: bool = false # Tracks whether the current successful campaign result should reveal progression.
+var _next_button_focus_assigned: bool = false # Prevents repeatedly stealing focus once the staged next-level button becomes interactive.
 var _burst_particles: Array[Dictionary] = [] # Stores lightweight deterministic completion particles drawn directly by this Control.
 var _reaction_start_player: AudioStreamPlayer = null # Plays the generated rising reaction cue.
 var _reaction_complete_player: AudioStreamPlayer = null # Plays the generated completion chord.
 
 func _ready() -> void: # Configures the overlay, generated audio players, and post-controller process ordering.
-	mouse_filter = Control.MOUSE_FILTER_IGNORE # Guarantees the presentation layer never blocks gameplay or UI clicks.
+	mouse_filter = Control.MOUSE_FILTER_IGNORE # Guarantees the drawn presentation layer never blocks gameplay or UI clicks.
 	focus_mode = Control.FOCUS_NONE # Keeps keyboard and controller focus on real game controls.
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT) # Fills the root viewport so workspace-local effects can be converted into overlay coordinates.
-	z_index = 90 # Places reaction polish above normal gameplay while remaining non-interactive.
+	z_index = 90 # Places reaction polish above normal gameplay while leaving the native completion button above it.
 	process_priority = 220 # Runs after the controller, responsive layout, and Formula Mode parity helpers have updated their state for the frame.
 	_reaction_start_player = AudioStreamPlayer.new() # Creates the native player used for the reaction build-up sound.
 	_reaction_start_player.name = "Reaction Start Audio" # Gives the runtime player a readable scene-tree name.
@@ -44,7 +49,7 @@ func _ready() -> void: # Configures the overlay, generated audio players, and po
 	_reaction_complete_player.stream = _build_completion_sound() # Assigns a generated three-note success chord.
 	_reaction_complete_player.volume_db = -5.0 # Makes the completion cue stronger than the reaction-start cue.
 	add_child(_reaction_complete_player) # Attaches the completion player to the persistent presentation layer.
-	set_process(true) # Enables state-edge polling, particles, staged reveal timing, and redraw requests.
+	set_process(true) # Enables state-edge polling, particles, staged reveal timing, progression presentation, and redraw requests.
 
 func _process(delta: float) -> void: # Observes production reaction state and advances presentation effects without owning gameplay logic.
 	var scene: Node = get_tree().current_scene # Reads the active native game scene.
@@ -71,10 +76,11 @@ func _process(delta: float) -> void: # Observes production reaction state and ad
 	_previous_freeplay_reaction_active = freeplay_active # Stores the freeplay edge baseline for the next frame.
 	_previous_freeplay_product_count = _root.state.freeplay_products.size() # Stores the current retained-product count for freeplay success detection.
 	if _completion_elapsed >= 0.0: # Advances staged result presentation only after a successful reaction.
-		_completion_elapsed += delta # Moves the formula/name/completion reveal timeline forward.
+		_completion_elapsed += delta # Moves the formula/name/completion/button reveal timeline forward.
 		if _completion_is_campaign and not _root.state.molecule_active: # Detects reset or next-level navigation after campaign completion.
-			_reset_completion() # Removes the old card and particles as soon as the completed product leaves the workspace.
+			_reset_completion() # Removes the old card, button, and particles as soon as the completed product leaves the workspace.
 	_update_burst_particles(delta) # Advances completion particles independently from campaign or freeplay simulation.
+	_update_next_level_button() # Positions and reveals the native progression control as the final campaign-completion beat.
 	if campaign_active or freeplay_active or _completion_elapsed >= 0.0 or not _burst_particles.is_empty(): # Redraws only while reaction presentation is actually visible.
 		queue_redraw() # Requests the current charge-up, particle, flash, and result-card frame.
 
@@ -88,22 +94,39 @@ func _draw() -> void: # Renders reaction energy, completion burst particles, and
 
 func _bind_scene(scene_root: BohrBuilderController) -> void: # Captures a ready controller and initializes transition baselines without fabricating a reaction edge.
 	_root = scene_root # Retains the production controller used for workspace coordinate conversion and state inspection.
+	_bind_completion_button() # Moves the editor-defined next-level button out of the sidebar and into the dedicated completion overlay.
 	_previous_campaign_reaction_active = _root.state.reaction != null # Prevents an already-running reaction from replaying its start cue after scene binding.
 	_previous_freeplay_reaction_active = _root.state.freeplay_reaction != null # Prevents an already-running freeplay reaction from replaying its start cue after scene binding.
 	_previous_freeplay_product_count = _root.state.freeplay_products.size() # Establishes the existing retained-product baseline.
 	_last_mode = _root.state.game_mode # Establishes the current mode without clearing presentation on the first bound frame.
-	_reset_completion() # Starts with no stale result presentation.
+	_reset_completion() # Starts with no stale result presentation or visible progression control.
 
 func _unbind_scene() -> void: # Clears scene-specific references and transient visual state safely.
+	_reset_completion() # Hides any staged native progression control while the old scene reference is still valid.
 	_root = null # Drops the production controller reference.
 	_previous_campaign_reaction_active = false # Clears the campaign transition baseline.
 	_previous_freeplay_reaction_active = false # Clears the freeplay transition baseline.
 	_previous_freeplay_product_count = 0 # Clears retained-product transition state.
 	_last_mode = &"" # Clears mode tracking for the next scene binding.
-	_reset_completion() # Removes all completion text and particles.
+
+func _bind_completion_button() -> void: # Reparents the existing editor-defined next-level button into the root completion overlay without creating duplicate UI.
+	if _root == null or not is_instance_valid(_root.next_button): # Rejects incomplete controller startup defensively.
+		return # Leaves progression untouched until a valid controller is available.
+	var completion_overlay: Control = _root.get_node_or_null(^"CompletionOverlay") as Control # Resolves the dedicated editor-defined overlay container.
+	if completion_overlay == null: # Rejects an invalid or outdated scene layout.
+		return # Leaves the button at its original location rather than losing it.
+	if _root.next_button.get_parent() != completion_overlay: # Moves the button only once per instantiated scene.
+		_root.next_button.reparent(completion_overlay, false) # Removes progression from the sidebar while preserving the same Button instance and controller reference.
+	_root.next_button.set_anchors_preset(Control.PRESET_TOP_LEFT) # Makes runtime card-relative positioning deterministic inside the full-screen overlay.
+	_root.next_button.custom_minimum_size = Vector2(220.0, 42.0) # Keeps the primary completion action large enough for mouse, keyboard, and controller use.
+	_root.next_button.size = Vector2(220.0, 42.0) # Establishes a usable size before the first responsive result-card positioning pass.
+	_root.next_button.mouse_filter = Control.MOUSE_FILTER_IGNORE # Prevents hidden or fading progression controls from intercepting clicks.
+	_root.next_button.visible = false # Keeps progression absent until a successful non-final campaign completion is fully revealed.
+	_root.next_button.disabled = true # Prevents keyboard/controller activation before the staged reveal is complete.
+	_root.next_button.modulate = Color(1.0, 1.0, 1.0, 0.0) # Starts the staged button fully transparent.
 
 func _begin_reaction() -> void: # Starts the successful-combination build-up presentation when gameplay enters a reaction state.
-	_reset_completion() # Ensures only the newest reaction owns the visual timeline.
+	_reset_completion() # Ensures only the newest reaction owns the visual timeline and progression control.
 	if _reaction_start_player != null: # Guards the generated audio player during unusual startup ordering.
 		_reaction_start_player.play() # Plays the rising synthesized reaction cue immediately.
 
@@ -113,7 +136,9 @@ func _finish_campaign_reaction() -> void: # Captures campaign result data and st
 	_completion_formula = String(entry["formula"]) # Stores the exact displayed campaign formula.
 	_completion_name = _display_name(String(entry["name"])) # Stores the normal title-style molecule name.
 	_completion_is_campaign = true # Marks this result as campaign progression.
-	if _root.state.current_level_index >= _root.campaign.size() - 1: # Detects the final generated campaign level.
+	_completion_has_next_level = _root.state.current_level_index < _root.campaign.size() - 1 # Records whether progression exists beyond this completed campaign target.
+	_hide_next_level_button() # Immediately removes CampaignSystem's sidebar visibility change before this post-controller presentation frame is drawn.
+	if not _completion_has_next_level: # Detects the final generated campaign level.
 		_completion_heading = "Campaign Complete" # Gives the final target a stronger campaign-scale completion heading.
 		_completion_subheading = "All 200 Levels Complete" # Makes full campaign completion explicit.
 	else: # Handles every ordinary successful campaign target.
@@ -127,18 +152,21 @@ func _finish_freeplay_reaction() -> void: # Captures the newest retained freepla
 	_completion_formula = ReactionLibrary.pretty_formula_from_ascii(product.formula) # Converts the stored ASCII formula into normal display notation.
 	_completion_name = _display_name(product.product_name) # Converts the known or verified product identifier into readable title text.
 	_completion_is_campaign = false # Marks this result as a sandbox reaction rather than campaign progression.
+	_completion_has_next_level = false # Keeps campaign progression controls absent from freeplay success presentation.
 	_completion_heading = "Reaction Complete" # Gives freeplay a clear success state without implying campaign advancement.
 	_completion_subheading = "Freeplay Continues" # Reinforces that the sandbox remains active after product formation.
 	_start_completion_presentation() # Starts the shared flash, particles, chime, and staged card timeline.
 
 func _start_completion_presentation() -> void: # Starts the shared success timeline after either campaign or freeplay reaction finalization.
 	_completion_elapsed = 0.0 # Starts staged formula/name/completion reveal timing from zero.
+	_hide_next_level_button() # Keeps progression unavailable until every preceding success-information beat has appeared.
 	_spawn_burst_particles() # Creates the deterministic radial particle burst around the formed product.
 	if _reaction_complete_player != null: # Guards the generated audio player during unusual startup ordering.
 		_reaction_complete_player.play() # Plays the synthesized successful-reaction chord.
 	queue_redraw() # Shows the first completion flash frame immediately.
 
 func _reset_completion() -> void: # Clears transient result presentation without touching gameplay state.
+	_hide_next_level_button() # Removes any completion action and restores its hidden non-interactive state.
 	_completion_elapsed = -1.0 # Disables the completion timeline.
 	_completion_world_position = Vector2.ZERO # Clears the old product anchor.
 	_completion_formula = "" # Clears previous formula text.
@@ -146,7 +174,51 @@ func _reset_completion() -> void: # Clears transient result presentation without
 	_completion_heading = "" # Clears previous completion heading.
 	_completion_subheading = "" # Clears previous progression/sandbox subheading.
 	_completion_is_campaign = false # Restores the neutral presentation type.
+	_completion_has_next_level = false # Clears campaign progression availability.
+	_next_button_focus_assigned = false # Allows the next successful campaign completion to focus its own progression button once.
 	_burst_particles.clear() # Removes any remaining success particles immediately.
+
+func _hide_next_level_button() -> void: # Returns the shared native progression control to a completely hidden and non-interactive state.
+	_next_button_focus_assigned = false # Allows a future staged reveal to assign focus once.
+	if _root == null or not is_instance_valid(_root.next_button): # Tolerates startup, shutdown, and unrelated scene states safely.
+		return # Leaves no native control to update.
+	_root.next_button.visible = false # Removes progression from both the old sidebar layout and completion overlay.
+	_root.next_button.disabled = true # Prevents hidden keyboard/controller activation.
+	_root.next_button.mouse_filter = Control.MOUSE_FILTER_IGNORE # Ensures hidden progression never blocks workspace pointer interaction.
+	_root.next_button.modulate = Color(1.0, 1.0, 1.0, 0.0) # Resets the next staged fade-in to a known transparent state.
+
+func _update_next_level_button() -> void: # Positions, fades, enables, and focuses progression inside the successful-reaction result card.
+	if _root == null or not is_instance_valid(_root.next_button): # Rejects frames without the production progression control.
+		return # Leaves presentation visual-only until the control exists.
+	if not _completion_is_campaign or not _completion_has_next_level or _completion_elapsed < NEXT_BUTTON_REVEAL_TIME or not _root.state.molecule_active or _root.state.mode_prompt_open: # Requires a revealed non-final campaign success state with no modal in front.
+		_hide_next_level_button() # Keeps progression completely unavailable outside its final success beat.
+		return # Stops before positioning or enabling the button.
+	var card_rect: Rect2 = _result_card_rect() # Reads the exact responsive rectangle used by the drawn successful-reaction card.
+	if card_rect.size.x <= 0.0 or card_rect.size.y <= 0.0: # Protects unusual layout frames without usable workspace geometry.
+		_hide_next_level_button() # Removes the button rather than leaving it at a stale screen position.
+		return # Defers progression until layout becomes valid.
+	var button_width: float = minf(240.0, maxf(180.0, card_rect.size.x - 28.0)) # Keeps the primary action comfortably wide while respecting narrow completion cards.
+	var button_height: float = 42.0 # Matches the established primary-action height used elsewhere in the native interface.
+	var button_overlay_rect: Rect2 = Rect2(Vector2(card_rect.position.x + (card_rect.size.x - button_width) * 0.5, card_rect.end.y - button_height - 12.0), Vector2(button_width, button_height)) # Centers progression inside the completion card footer.
+	var button_parent: Control = _root.next_button.get_parent() as Control # Reads the full-screen completion overlay that owns the native button.
+	if button_parent == null: # Rejects an unexpected reparenting failure.
+		_hide_next_level_button() # Prevents a misplaced progression control from remaining interactive.
+		return # Stops until the scene binding can be corrected.
+	var presentation_transform: Transform2D = get_global_transform_with_canvas() # Converts result-card overlay coordinates into global canvas coordinates.
+	var parent_inverse: Transform2D = button_parent.get_global_transform_with_canvas().affine_inverse() # Converts global canvas coordinates into the completion overlay's local space.
+	var button_top_left: Vector2 = parent_inverse * (presentation_transform * button_overlay_rect.position) # Resolves the responsive button's local top-left corner.
+	var button_bottom_right: Vector2 = parent_inverse * (presentation_transform * button_overlay_rect.end) # Resolves the responsive button's local bottom-right corner.
+	_root.next_button.position = button_top_left # Places the real native button inside the drawn completion card.
+	_root.next_button.size = button_bottom_right - button_top_left # Matches the real control bounds to the responsive card footer.
+	var reveal_alpha: float = clampf((_completion_elapsed - NEXT_BUTTON_REVEAL_TIME) / NEXT_BUTTON_FADE_DURATION, 0.0, 1.0) # Converts the final completion beat into a short native-control fade.
+	_root.next_button.visible = true # Makes the button render above the drawn result card as soon as its final beat begins.
+	_root.next_button.modulate = Color(1.0, 1.0, 1.0, reveal_alpha) # Fades the native themed button smoothly into the card.
+	var interactive: bool = reveal_alpha >= 0.95 # Delays activation until the button is effectively fully visible.
+	_root.next_button.disabled = not interactive # Prevents premature keyboard/controller progression during the fade.
+	_root.next_button.mouse_filter = Control.MOUSE_FILTER_STOP if interactive else Control.MOUSE_FILTER_IGNORE # Enables pointer targeting only when progression is visibly ready.
+	if interactive and not _next_button_focus_assigned: # Gives the newly revealed completion action one deliberate focus transition.
+		_root.next_button.grab_focus() # Makes Enter and Button_A immediately activate Next Level after the celebratory sequence.
+		_next_button_focus_assigned = true # Prevents subsequent frames from repeatedly stealing focus.
 
 func _reaction_progress() -> float: # Returns normalized progress for whichever reaction animation is currently active.
 	if _root == null: # Rejects calls without an active controller.
@@ -228,24 +300,20 @@ func _draw_completion_flash() -> void: # Draws a short expanding success flash b
 	draw_circle(center, lerpf(32.0, 155.0, progress), Color(COLOR_GOLD.r, COLOR_GOLD.g, COLOR_GOLD.b, alpha * 0.22)) # Draws the broad warm completion glow.
 	draw_arc(center, lerpf(42.0, 190.0, progress), 0.0, TAU, 80, Color(COLOR_WHITE.r, COLOR_WHITE.g, COLOR_WHITE.b, alpha), lerpf(5.0, 1.0, progress), true) # Draws the expanding bright success ring.
 
-func _draw_result_card() -> void: # Draws the staged formula, product name, and explicit completion state after successful formation.
+func _draw_result_card() -> void: # Draws the staged formula, product name, explicit completion state, and backing surface for campaign progression.
 	if _completion_elapsed < 0.12 or _root == null: # Delays the card slightly so the product flash gets the first visual beat.
 		return # Leaves the opening completion frame focused on the molecule itself.
-	var workspace_rect: Rect2 = _workspace_overlay_rect() # Reads the responsive workspace rectangle in overlay-local coordinates.
-	if workspace_rect.size.x <= 0.0 or workspace_rect.size.y <= 0.0: # Protects unusual startup/layout frames.
+	var card_rect: Rect2 = _result_card_rect() # Uses one shared responsive rectangle for both custom drawing and the native next-level control.
+	if card_rect.size.x <= 0.0 or card_rect.size.y <= 0.0: # Protects unusual startup/layout frames.
 		return # Defers the card until the workspace has a usable display rectangle.
-	var card_width: float = minf(RESULT_CARD_WIDTH, maxf(260.0, workspace_rect.size.x - 36.0)) # Keeps the card inside narrow responsive workspace bounds.
-	var card_height: float = minf(RESULT_CARD_HEIGHT, maxf(126.0, workspace_rect.size.y * 0.28)) # Prevents the completion card from consuming too much of a short workspace.
-	var card_x: float = workspace_rect.position.x + (workspace_rect.size.x - card_width) * 0.5 # Centers the card horizontally over the playable workspace.
-	var card_y: float = workspace_rect.position.y + 18.0 # Places completion information near the top so it does not cover the formed molecule.
-	var card_rect: Rect2 = Rect2(Vector2(card_x, card_y), Vector2(card_width, card_height)) # Builds the final responsive completion-card rectangle.
 	var reveal: float = clampf((_completion_elapsed - 0.12) / 0.28, 0.0, 1.0) # Fades and slightly expands the card into view.
 	var background_alpha: float = 0.88 * reveal # Gives the result a strong but not fully opaque dark backing.
 	draw_rect(card_rect, Color(0.0431, 0.0549, 0.0706, background_alpha), true) # Draws the dark native result-card surface.
 	draw_rect(card_rect, Color(COLOR_CYAN.r, COLOR_CYAN.g, COLOR_CYAN.b, 0.34 * reveal), false, 2.0) # Draws a cool chemistry-energy outline around the result card.
 	var font: Font = ThemeDB.fallback_font # Uses Godot's built-in fallback font so the overlay needs no external assets.
-	var content_width: float = card_width - 28.0 # Reserves comfortable left and right padding for all centered text.
-	var content_x: float = card_x + 14.0 # Stores the common left edge used by centered draw-string calls.
+	var content_width: float = card_rect.size.x - 28.0 # Reserves comfortable left and right padding for all centered text.
+	var content_x: float = card_rect.position.x + 14.0 # Stores the common left edge used by centered draw-string calls.
+	var card_y: float = card_rect.position.y # Stores the card top edge for staged typography positions.
 	var formula_scale: float = 1.0 + sin(minf(1.0, maxf(0.0, (_completion_elapsed - 0.18) / 0.32)) * PI) * 0.10 # Adds one restrained pop to the formula reveal.
 	if _completion_elapsed >= 0.18: # Reveals the product formula first.
 		var formula_alpha: float = clampf((_completion_elapsed - 0.18) / 0.24, 0.0, 1.0) # Fades the formula in quickly after the card appears.
@@ -257,9 +325,21 @@ func _draw_result_card() -> void: # Draws the staged formula, product name, and 
 	if _completion_elapsed >= 0.78: # Reveals explicit level/reaction completion after the chemistry identity is established.
 		var heading_alpha: float = clampf((_completion_elapsed - 0.78) / 0.24, 0.0, 1.0) # Fades in the success-state heading.
 		draw_string(font, Vector2(content_x, card_y + 108.0), _completion_heading, HORIZONTAL_ALIGNMENT_CENTER, content_width, 18, Color(COLOR_GOLD.r, COLOR_GOLD.g, COLOR_GOLD.b, heading_alpha)) # Draws Level Complete, Campaign Complete, or Reaction Complete.
-	if _completion_elapsed >= 1.08: # Reveals progression/sandbox continuity as the final information beat.
+	if _completion_elapsed >= 1.08: # Reveals progression/sandbox continuity as the final information beat before the campaign button.
 		var subheading_alpha: float = clampf((_completion_elapsed - 1.08) / 0.24, 0.0, 1.0) # Fades the final supporting line into view.
 		draw_string(font, Vector2(content_x, card_y + 134.0), _completion_subheading, HORIZONTAL_ALIGNMENT_CENTER, content_width, 12, Color(COLOR_MUTED.r, COLOR_MUTED.g, COLOR_MUTED.b, subheading_alpha)) # Draws the next-level or freeplay continuation message.
+
+func _result_card_rect() -> Rect2: # Calculates the shared responsive result-card geometry used by custom drawing and native progression controls.
+	var workspace_rect: Rect2 = _workspace_overlay_rect() # Reads the responsive workspace rectangle in presentation-local coordinates.
+	if workspace_rect.size.x <= 0.0 or workspace_rect.size.y <= 0.0: # Protects unusual startup/layout frames.
+		return Rect2() # Reports no usable card until the workspace has valid geometry.
+	var card_width: float = minf(RESULT_CARD_WIDTH, maxf(260.0, workspace_rect.size.x - 36.0)) # Keeps the card inside narrow responsive workspace bounds.
+	var desired_height: float = RESULT_CARD_BUTTON_HEIGHT if _completion_has_next_level else RESULT_CARD_TEXT_HEIGHT # Reserves a footer only when a real next-level action exists.
+	var available_height: float = maxf(126.0, workspace_rect.size.y - 36.0) # Leaves a small vertical workspace margin while preserving a readable minimum card.
+	var card_height: float = minf(desired_height, available_height) # Shrinks the card only when responsive workspace height genuinely requires it.
+	var card_x: float = workspace_rect.position.x + (workspace_rect.size.x - card_width) * 0.5 # Centers the card horizontally over the playable workspace.
+	var card_y: float = workspace_rect.position.y + 18.0 # Places completion information near the top so it does not cover the formed molecule.
+	return Rect2(Vector2(card_x, card_y), Vector2(card_width, card_height)) # Returns the final responsive completion-card rectangle.
 
 func _workspace_overlay_rect() -> Rect2: # Converts the responsive workspace Control bounds into this overlay's local coordinate system.
 	if _root == null or not is_instance_valid(_root.workspace): # Rejects missing workspace references defensively.

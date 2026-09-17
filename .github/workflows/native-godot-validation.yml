@@ -41,8 +41,8 @@ jobs:
         run: |
           set -euo pipefail
           while IFS= read -r script; do
-            if [[ "${script}" == "godot/audio/sound_effect_router.gd" ]]; then
-              echo "Skipping standalone check for ${script}; it intentionally depends on the SoundEffects autoload and is covered by project import plus the sound-effects runtime smoke test."
+            if [[ "${script}" == "godot/audio/sound_effect_router.gd" || "${script}" == "godot/tests/sound_effects_smoke.gd" ]]; then
+              echo "Skipping standalone check for ${script}; it intentionally depends on project autoloads and is covered by project import plus the dedicated runtime sound-effects smoke test."
               continue
             fi
             echo "Checking ${script}"

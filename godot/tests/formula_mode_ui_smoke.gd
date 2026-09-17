@@ -35,11 +35,12 @@ func _run_test_after_ready() -> void: # Enters Formula Mode after production _re
 	if not _controller.guided_level_details.visible: # Lesson and equation should match Guided Mode.
 		_fail("Formula Mode should show the Guided lesson and equation section.") # Reports missing campaign information.
 		return # Stops the smoke test.
-	if not _controller.target_name.visible: # Molecule target name should match Guided Mode at the normal desktop project width.
-		_fail("Formula Mode should show the target molecule name.") # Reports missing target naming.
+	var expected_target_name_visibility: bool = _controller.size.x >= 620.0 # Mirrors the same responsive visibility threshold used for Guided Mode target names.
+	if _controller.target_name.visible != expected_target_name_visibility: # Requires Formula Mode to follow Guided Mode's responsive target-name visibility exactly.
+		_fail("Formula Mode target-name visibility should match Guided Mode responsive behavior.") # Reports a genuine presentation mismatch rather than a headless viewport artifact.
 		return # Stops the smoke test.
 	var expected_name: String = _display_name(String(entry["name"])) # Formats the expected molecule name exactly like the production UI.
-	if _controller.target_name.text != expected_name: # Confirms the target name is populated, not merely visible.
+	if _controller.target_name.text != expected_name: # Confirms the target name is populated even when responsive layout hides the secondary line.
 		_fail("Formula Mode target molecule name does not match Guided Mode.") # Reports incorrect target naming.
 		return # Stops the smoke test.
 	var expected_title: String = _display_name(String(entry["title"])) # Formats the expected campaign title.

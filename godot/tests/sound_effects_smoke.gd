@@ -13,9 +13,12 @@ func _ready() -> void: # Instantiates the real native scene after project autolo
 	if _controller == null: # Rejects an unexpected root type.
 		_fail("Native main scene did not instantiate as BohrBuilderController for sound validation.") # Reports the root mismatch.
 		return # Stops the smoke test.
+	call_deferred("_attach_controller") # Waits until initial scene construction finishes before adding another direct SceneTree-root child.
+
+func _attach_controller() -> void: # Attaches the production scene at the root after the test scene has finished entering the tree.
 	get_tree().root.add_child(_controller) # Adds the production game directly beneath the SceneTree root so it can become the active current scene.
 	get_tree().current_scene = _controller # Makes the production game discoverable exactly as a normal launch does for observer autoloads.
-	call_deferred("_run_test_after_ready") # Defers checks until controller @onready references and audio autoload startup have completed.
+	call_deferred("_run_test_after_ready") # Defers checks until controller @onready references and audio autoload observation have completed.
 
 func _run_test_after_ready() -> void: # Verifies generated samples, polyphonic playback, and representative routed state transitions.
 	_effects = get_node_or_null(^"/root/SoundEffects") as BohrSoundEffects # Resolves the centralized generated sound palette registered in project.godot.

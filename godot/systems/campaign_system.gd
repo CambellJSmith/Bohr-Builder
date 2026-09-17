@@ -93,13 +93,13 @@ func _find_reactants() -> Array[AtomState]: # Selects one unique completed world
 	var used: Dictionary = {} # Tracks atom identifiers already assigned to a requirement.
 	var reactants: Array[AtomState] = [] # Collects matching atoms in target-layout order.
 	for atom_key: String in current_level()["atom_keys"] as Array[String]: # Resolves every required campaign species in order.
-		var match: AtomState = null # Stores the first unused exact match.
+		var matched_atom: AtomState = null # Stores the first unused exact match.
 		for atom: AtomState in state.atoms: # Searches active world atoms.
 			if not used.has(atom.id) and atom_matches(atom, atom_key): # Requires uniqueness and exact particle counts.
-				match = atom # Retains the matching world atom.
+				matched_atom = atom # Retains the matching world atom.
 				break # Stops after the first ordered match.
-		if match == null: # Detects any still-missing requirement.
+		if matched_atom == null: # Detects any still-missing requirement.
 			return [] # Reports that automatic reaction is not ready.
-		used[match.id] = true # Reserves this atom for the current requirement.
-		reactants.append(match) # Preserves target-layout order.
+		used[matched_atom.id] = true # Reserves this atom for the current requirement.
+		reactants.append(matched_atom) # Preserves target-layout order.
 	return reactants # Returns the complete unique reactant assignment.

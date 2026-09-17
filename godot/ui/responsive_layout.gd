@@ -6,6 +6,7 @@ const NARROW_WIDTH: float = 760.0 # Switches the workspace and sidebar into a ve
 const TINY_WIDTH: float = 620.0 # Applies the tightest spacing and header simplification for very narrow windows.
 const MIN_WORKSPACE_WIDTH: float = 260.0 # Keeps the interactive world large enough to remain usable.
 const MIN_WORKSPACE_HEIGHT: float = 240.0 # Keeps the interactive world large enough vertically on short windows.
+const MODE_PANEL_MAX_WIDTH: float = 520.0 # Keeps the mode chooser deliberately narrower than the previous wide three-card layout.
 
 var _root: Control = null # References the active Bohr Builder root once its scene is ready.
 var _app_margin: MarginContainer = null # Controls responsive outer padding.
@@ -26,12 +27,13 @@ var _particle_buttons: Array[Button] = [] # Stores the three particle-selection 
 var _mode_panel: PanelContainer = null # Holds the opening mode chooser.
 var _mode_buttons: Array[Button] = [] # Stores all three mode-choice controls.
 var _workspace_box: BoxContainer = null # Replaces the fixed horizontal workspace row with a switchable box container.
-var _mode_box: BoxContainer = null # Replaces the fixed horizontal mode row with a responsive box container.
+var _mode_box: BoxContainer = null # Replaces the fixed horizontal mode row with a narrow vertical box container.
 var _sidebar_scroll: ScrollContainer = null # Adds vertical scrolling when sidebar content exceeds the available height.
 var _last_size: Vector2 = Vector2(-1.0, -1.0) # Avoids recalculating layout every frame when the window is unchanged.
 
-func _ready() -> void: # Enables lightweight polling because the project intentionally avoids signal-based architecture.
+func _ready() -> void: # Enables lightweight polling and explicit modal click handling.
 	set_process(true) # Watches for the game scene and real window-size changes.
+	set_process_input(true) # Allows direct modal hit-testing without relying on GUI hover ancestry.
 
 func _process(_delta: float) -> void: # Binds the current scene and reapplies responsive rules only when necessary.
 	var scene: Node = get_tree().current_scene # Resolves the currently running main scene.
@@ -45,6 +47,27 @@ func _process(_delta: float) -> void: # Binds the current scene and reapplies re
 	if _root.size != _last_size: # Recalculates only after an actual logical window-size change.
 		_last_size = _root.size # Remembers the new available UI size.
 		_apply_layout() # Applies responsive sizes, spacing, orientation, and visibility.
+
+func _input(event: InputEvent) -> void: # Provides deterministic mouse activation for the mode chooser.
+	if _root == null or not is_instance_valid(_root): # Ignores input before the game scene is bound.
+		return # Leaves unrelated input untouched.
+	var mode_overlay: Control = _root.get_node_or_null("ModeOverlay") as Control # Resolves the modal overlay safely.
+	if mode_overlay == null or not mode_overlay.visible: # Handles only input while the mode chooser is actually open.
+		return # Leaves normal game input to the controller.
+	if not event is InputEventMouseButton: # Restricts this fallback to mouse clicks.
+		return # Leaves keyboard and controller behavior to the existing controller.
+	var mouse_event: InputEventMouseButton = event as InputEventMouseButton # Narrows the input event to mouse data.
+	if mouse_event.button_index != MOUSE_BUTTON_LEFT or not mouse_event.pressed: # Activates only on the left-button press edge.
+		return # Ignores releases and other mouse buttons.
+	for button_index: int in _mode_buttons.size(): # Checks each visible mode card directly by screen rectangle.
+		var mode_button: Button = _mode_buttons[button_index] # Reads one cached mode button.
+		if not mode_button.is_visible_in_tree() or not mode_button.get_global_rect().has_point(mouse_event.position): # Rejects buttons outside the click point.
+			continue # Checks the next card.
+		mode_button.grab_focus() # Preserves visible keyboard/controller focus on the clicked card.
+		var selected_mode: StringName = &"guided" if button_index == 0 else &"formula_only" if button_index == 1 else &"freeplay" # Maps card order to game mode.
+		_root.call("_set_game_mode", selected_mode) # Calls the controller's existing mode transition directly.
+		get_viewport().set_input_as_handled() # Prevents the same click from reaching the world behind the modal.
+		return # Stops after one matching card is activated.
 
 func _bind_scene(scene_root: Control) -> void: # Captures the native interface after its controller has finished normal initialization.
 	_root = scene_root # Retains the active game root.
@@ -75,8 +98,12 @@ func _bind_scene(scene_root: Control) -> void: # Captures the native interface a
 		original_mode_grid.get_node("FormulaModeButton") as Button, # Captures formula-only mode.
 		original_mode_grid.get_node("FreeplayModeButton") as Button, # Captures freeplay mode.
 	] # Completes mode-button cache.
+	_mode_buttons[0].text = "Guided\nShow Atoms And Counts" # Uses concise text so the card no longer forces an oversized modal width.
+	_mode_buttons[1].text = "Formula Only\nShow The Target Formula" # Uses concise text so the card remains readable in a narrow stack.
+	_mode_buttons[2].text = "Freeplay\nOpen Atomic Sandbox" # Uses concise text so the card remains readable in a narrow stack.
 	_workspace_box = _replace_box_container(original_workspace_layout, "Responsive Workspace Layout") # Installs a box whose orientation can change at runtime.
-	_mode_box = _replace_box_container(original_mode_grid, "Responsive Mode Grid") # Installs a switchable mode-choice box.
+	_mode_box = _replace_box_container(original_mode_grid, "Responsive Mode Grid") # Installs the narrow vertical mode-choice box.
+	_mode_box.vertical = true # Keeps mode choices stacked at every resolution instead of expanding across the screen.
 	_install_sidebar_scroll() # Makes all sidebar controls reachable on short windows and via controller focus.
 	_last_size = Vector2(-1.0, -1.0) # Forces one complete layout pass after restructuring.
 
@@ -167,12 +194,12 @@ func _apply_layout() -> void: # Applies responsive rules for the currently avail
 	_status_banner.anchor_top = 1.0 # Anchors status banner vertically to the bottom edge.
 	_status_banner.anchor_bottom = 1.0 # Keeps status banner bottom-relative during resizing.
 	_status_banner.offset_left = 12.0 # Preserves the original inner left inset.
-	_status_banner.offset_right = -12.0 # Replaces the old fixed 760-pixel right edge with a true responsive inset.
+	_status_banner.offset_right = -12.0 # Replaces the old fixed right edge with a true responsive inset.
 	_status_banner.offset_top = -58.0 # Preserves original status height.
 	_status_banner.offset_bottom = -12.0 # Preserves original bottom inset.
-	var mode_width_limit: float = maxf(300.0, viewport_size.x - float(outer_margin * 2 + 24)) # Keeps the modal inside the actual window width.
-	_mode_panel.custom_minimum_size = Vector2(minf(760.0, mode_width_limit), 0.0) # Removes the mode chooser's hard 760-pixel minimum on small displays.
-	_mode_box.vertical = viewport_size.x < 700.0 # Stacks mode cards vertically when three readable columns no longer fit.
-	_mode_box.add_theme_constant_override("separation", 8 if compact else 10) # Maintains consistent spacing in either orientation.
+	var mode_width_limit: float = maxf(280.0, viewport_size.x - float(outer_margin * 2 + 32)) # Keeps the modal inside the actual window width.
+	_mode_panel.custom_minimum_size = Vector2(minf(MODE_PANEL_MAX_WIDTH, mode_width_limit), 0.0) # Caps the chooser at a compact desktop width.
+	_mode_box.vertical = true # Keeps the three mode choices in a predictable narrow vertical stack.
+	_mode_box.add_theme_constant_override("separation", 8) # Uses consistent compact spacing between stacked cards.
 	for mode_button: Button in _mode_buttons: # Resizes all mode cards consistently.
-		mode_button.custom_minimum_size = Vector2(0.0, 112.0 if _mode_box.vertical else 180.0) # Uses compact rows on narrow screens and original cards on desktop.
+		mode_button.custom_minimum_size = Vector2(0.0, 76.0 if compact else 84.0) # Keeps each mode choice large enough to click without making the dialog oversized.

@@ -14,6 +14,7 @@ config/features=PackedStringArray("4.7", "GL Compatibility")
 ResponsiveLayout="*res://godot/ui/responsive_layout.gd"
 ModeClickRouter="*res://godot/ui/mode_click_router.gd"
 FormulaModePresenter="*res://godot/ui/campaign_mode_presenter.gd"
+ReactionPresentation="*res://godot/ui/reaction_presentation.gd"
 
 [debug]
 

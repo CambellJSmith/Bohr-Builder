@@ -16,6 +16,7 @@ config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [autoload]
 
+SteamManager="*res://godot/steam/steam_manager.gd"
 OdditySettings="*res://godot/settings/oddity_settings.gd"
 SoundEffects="*res://godot/audio/oddity_sound_effects.gd"
 SoundEffectRouter="*res://godot/audio/sound_effect_router.gd"

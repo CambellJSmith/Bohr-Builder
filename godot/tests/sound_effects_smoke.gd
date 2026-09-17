@@ -1,10 +1,10 @@
-extends SceneTree # Exercises the generated sound palette and centralized sound router against the real production scene.
+extends Node # Exercises the generated sound palette and centralized sound router through the normal project autoload lifecycle.
 
 var _controller: BohrBuilderController = null # Retains the instantiated production controller while the audio smoke test runs.
 var _effects: BohrSoundEffects = null # Retains the generated sound-effects autoload for direct runtime checks.
 var _router: BohrSoundEffectRouter = null # Retains the state-observing sound router autoload for integration checks.
 
-func _initialize() -> void: # Instantiates the real native scene and defers audio checks until every autoload and @onready reference is available.
+func _ready() -> void: # Instantiates the real native scene after project autoloads have been created normally.
 	var packed_scene: PackedScene = load("res://godot/bohr_builder_native.tscn") as PackedScene # Loads the production native game scene.
 	if packed_scene == null: # Rejects a missing or invalid main scene immediately.
 		_fail("Could not load the native Bohr Builder scene for sound validation.") # Reports the setup failure.
@@ -13,13 +13,13 @@ func _initialize() -> void: # Instantiates the real native scene and defers audi
 	if _controller == null: # Rejects an unexpected root type.
 		_fail("Native main scene did not instantiate as BohrBuilderController for sound validation.") # Reports the root mismatch.
 		return # Stops the smoke test.
-	root.add_child(_controller) # Adds the production game to the active SceneTree so its normal ready path runs.
-	current_scene = _controller # Makes the production game discoverable exactly as a normal launch does.
+	add_child(_controller) # Adds the production game beneath the smoke-test scene so its normal ready path runs.
+	get_tree().current_scene = _controller # Makes the production game discoverable exactly as a normal launch does for observer autoloads.
 	call_deferred("_run_test_after_ready") # Defers checks until controller @onready references and audio autoload startup have completed.
 
 func _run_test_after_ready() -> void: # Verifies generated samples, polyphonic playback, and representative routed state transitions.
-	_effects = root.get_node_or_null("SoundEffects") as BohrSoundEffects # Resolves the centralized generated sound palette registered in project.godot.
-	_router = root.get_node_or_null("SoundEffectRouter") as BohrSoundEffectRouter # Resolves the centralized observation router registered in project.godot.
+	_effects = get_node_or_null(^"/root/SoundEffects") as BohrSoundEffects # Resolves the centralized generated sound palette registered in project.godot.
+	_router = get_node_or_null(^"/root/SoundEffectRouter") as BohrSoundEffectRouter # Resolves the centralized observation router registered in project.godot.
 	if _effects == null: # Requires the sound palette autoload to exist at runtime.
 		_fail("SoundEffects autoload is missing.") # Reports missing audio infrastructure.
 		return # Stops before invoking generated sounds.
@@ -56,8 +56,8 @@ func _run_test_after_ready() -> void: # Verifies generated samples, polyphonic p
 	_effects.play_clear_selection() # Exercises freeplay-selection clear playback.
 	_effects.play_error() # Exercises invalid-action playback.
 	_effects.play_verify() # Exercises background-verification playback.
-	await process_frame # Allows the router to bind itself to the production controller after its normal startup path.
-	await process_frame # Allows one additional finalized frame so all state baselines are stable.
+	await get_tree().process_frame # Allows the router to bind itself to the production controller after its normal startup path.
+	await get_tree().process_frame # Allows one additional finalized frame so all state baselines are stable.
 	if _router._root != _controller: # Requires the router to discover and retain the real production controller without signals.
 		_fail("Sound effect router did not bind to the production controller.") # Reports broken centralized observation.
 		return # Stops before state transition checks.
@@ -83,9 +83,9 @@ func _run_test_after_ready() -> void: # Verifies generated samples, polyphonic p
 	if composition.z != atom.electrons: # Requires the router to consume the electron-count increase.
 		_fail("Sound effect router did not observe particle captures.") # Reports broken capture routing.
 		return # Stops the smoke test.
-	await process_frame # Allows any queued audio/runtime work to execute under the headless driver.
-	quit(0) # Reports success after generated audio and representative routing paths execute without runtime errors.
+	await get_tree().process_frame # Allows any queued audio/runtime work to execute under the headless driver.
+	get_tree().quit(0) # Reports success after generated audio and representative routing paths execute without runtime errors.
 
 func _fail(message: String) -> void: # Reports one deterministic sound-system regression and exits non-zero.
 	push_error(message) # Writes the exact failed invariant to the Godot Actions log.
-	quit(1) # Fails the CI step immediately.
+	get_tree().quit(1) # Fails the CI step immediately.

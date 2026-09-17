@@ -2,9 +2,12 @@ class_name BohrModeClickRouter # Routes mode-selector mouse clicks independently
 extends Node # Polls the physical mouse state so consumed viewport input cannot suppress modal activation.
 
 const MODE_OVERLAY_PATH: NodePath = ^"ModeOverlay" # Locates the modal overlay on the active Bohr Builder scene.
-const GUIDED_BUTTON_PATH: NodePath = ^"ModeOverlay/Center/ModePanel/ModeMargin/ModeContent/Responsive Mode Grid/GuidedModeButton" # Locates the guided mode button after responsive reparenting.
-const FORMULA_BUTTON_PATH: NodePath = ^"ModeOverlay/Center/ModePanel/ModeMargin/ModeContent/Responsive Mode Grid/FormulaModeButton" # Locates the formula-only mode button after responsive reparenting.
-const FREEPLAY_BUTTON_PATH: NodePath = ^"ModeOverlay/Center/ModePanel/ModeMargin/ModeContent/Responsive Mode Grid/FreeplayModeButton" # Locates the freeplay mode button after responsive reparenting.
+const GUIDED_RESPONSIVE_PATH: NodePath = ^"ModeOverlay/Center/ModePanel/ModeMargin/ModeContent/Responsive Mode Grid/GuidedModeButton" # Locates the guided button after responsive reparenting.
+const FORMULA_RESPONSIVE_PATH: NodePath = ^"ModeOverlay/Center/ModePanel/ModeMargin/ModeContent/Responsive Mode Grid/FormulaModeButton" # Locates the formula-only button after responsive reparenting.
+const FREEPLAY_RESPONSIVE_PATH: NodePath = ^"ModeOverlay/Center/ModePanel/ModeMargin/ModeContent/Responsive Mode Grid/FreeplayModeButton" # Locates the freeplay button after responsive reparenting.
+const GUIDED_ORIGINAL_PATH: NodePath = ^"ModeOverlay/Center/ModePanel/ModeMargin/ModeContent/ModeGrid/GuidedModeButton" # Locates the guided button before responsive reparenting.
+const FORMULA_ORIGINAL_PATH: NodePath = ^"ModeOverlay/Center/ModePanel/ModeMargin/ModeContent/ModeGrid/FormulaModeButton" # Locates the formula-only button before responsive reparenting.
+const FREEPLAY_ORIGINAL_PATH: NodePath = ^"ModeOverlay/Center/ModePanel/ModeMargin/ModeContent/ModeGrid/FreeplayModeButton" # Locates the freeplay button before responsive reparenting.
 
 var _left_was_down: bool = false # Remembers the previous physical mouse-button state so one click activates only once.
 
@@ -25,9 +28,12 @@ func _try_activate_mode_at_mouse() -> void: # Activates the mode button directly
 	if overlay == null or not overlay.is_visible_in_tree(): # Requires the chooser to be visibly open.
 		return # Prevents clicks from affecting hidden mode controls during gameplay.
 	var mouse_position: Vector2 = scene.get_viewport().get_mouse_position() # Reads the current viewport-space pointer position.
-	var button_paths: Array[NodePath] = [GUIDED_BUTTON_PATH, FORMULA_BUTTON_PATH, FREEPLAY_BUTTON_PATH] # Defines the three responsive mode-button locations in display order.
-	for button_path: NodePath in button_paths: # Tests each mode card against the click position.
-		var button: Button = scene.get_node_or_null(button_path) as Button # Resolves one live button after responsive reparenting.
+	var buttons: Array[Button] = [ # Resolves all three cards whether or not responsive reparenting has already happened.
+		_resolve_button(scene, GUIDED_RESPONSIVE_PATH, GUIDED_ORIGINAL_PATH), # Resolves the guided mode card.
+		_resolve_button(scene, FORMULA_RESPONSIVE_PATH, FORMULA_ORIGINAL_PATH), # Resolves the formula-only mode card.
+		_resolve_button(scene, FREEPLAY_RESPONSIVE_PATH, FREEPLAY_ORIGINAL_PATH), # Resolves the freeplay mode card.
+	] # Completes the ordered mode-button set.
+	for button: Button in buttons: # Tests each mode card against the click position.
 		if button == null or not button.is_visible_in_tree() or button.disabled: # Skips unavailable controls safely.
 			continue # Moves to the next mode choice.
 		if not button.get_global_rect().has_point(mouse_position): # Rejects clicks outside this button's displayed rectangle.
@@ -36,3 +42,9 @@ func _try_activate_mode_at_mouse() -> void: # Activates the mode button directly
 		if scene.has_method("_handle_button_action"): # Uses the controller's existing semantic button dispatcher when available.
 			scene.call("_handle_button_action", StringName(button.name)) # Applies the selected mode without relying on a native pressed signal.
 		return # Stops after the single clicked mode has been activated.
+
+func _resolve_button(scene: Node, responsive_path: NodePath, original_path: NodePath) -> Button: # Finds one mode button before or after the responsive layout has reparented it.
+	var button: Button = scene.get_node_or_null(responsive_path) as Button # Tries the normal responsive runtime location first.
+	if button != null: # Accepts the responsive location when available.
+		return button # Returns the already-reparented card.
+	return scene.get_node_or_null(original_path) as Button # Falls back to the original scene path during startup.

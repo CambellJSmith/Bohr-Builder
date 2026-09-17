@@ -9,6 +9,7 @@ var _root: BohrBuilderController = null # References the active native game cont
 var _product_name_label: Label = null # Adds the completed molecule name in Formula Mode to match Guided Mode rendering.
 
 func _ready() -> void: # Enables lightweight polling without introducing signals.
+	process_priority = 100 # Runs after the controller and responsive layout so their normal updates happen before parity corrections.
 	set_process(true) # Rechecks campaign presentation after controller-driven mode or level changes.
 
 func _process(_delta: float) -> void: # Applies Formula Mode parity after the controller has updated its normal UI state.

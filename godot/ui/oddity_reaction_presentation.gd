@@ -1,6 +1,8 @@
 class_name OddityReactionPresentationLayer # Applies Oddity audio, reduced-motion, and flash-reduction preferences to the existing reaction presentation.
 extends ReactionPresentationLayer # Reuses the established chemistry presentation while overriding only shared accessibility behavior.
 
+var _oddity_settings_service: OdditySettingsService = null # Caches the typed application service without requiring its autoload singleton name during standalone parsing.
+
 func _ready() -> void: # Initializes the inherited presentation and then applies standard Oddity audio routing.
 	super._ready() # Creates the existing reaction presentation state, generated sounds, and runtime layout bindings.
 	if _reaction_start_player != null: # Confirms the inherited reaction-start player exists.
@@ -9,7 +11,7 @@ func _ready() -> void: # Initializes the inherited presentation and then applies
 		_reaction_complete_player.bus = &"Effects" # Routes the success chord through the shared Effects bus.
 
 func _start_completion_presentation() -> void: # Starts completion presentation while respecting reduced-motion particle suppression.
-	if not OdditySettings.reduce_motion_enabled(): # Uses the full authored presentation when reduced motion is disabled.
+	if not _reduce_motion_enabled(): # Uses the full authored presentation when reduced motion is disabled.
 		super._start_completion_presentation() # Preserves the existing flash, burst, sound, and staged result sequence.
 		return # Stops after the inherited full-motion setup.
 	_completion_elapsed = 0.0 # Starts the completion timeline without animated burst allocation.
@@ -20,13 +22,13 @@ func _start_completion_presentation() -> void: # Starts completion presentation 
 	queue_redraw() # Requests the static reduced-motion result presentation immediately.
 
 func _update_burst_particles(delta: float) -> void: # Advances particles only when reduced motion is disabled.
-	if OdditySettings.reduce_motion_enabled(): # Detects live reduced-motion activation during an existing completion.
+	if _reduce_motion_enabled(): # Detects live reduced-motion activation during an existing completion.
 		_burst_particles.clear() # Removes already-spawned non-essential motion immediately.
 		return # Skips all particle integration while reduced motion is active.
 	super._update_burst_particles(delta) # Preserves the authored particle simulation when full motion is allowed.
 
 func _update_next_level_button() -> void: # Removes the progression-button fade while reduced motion is enabled.
-	if not OdditySettings.reduce_motion_enabled(): # Uses the authored staged fade for normal presentation.
+	if not _reduce_motion_enabled(): # Uses the authored staged fade for normal presentation.
 		super._update_next_level_button() # Preserves existing positioning, fade timing, and focus assignment.
 		return # Stops after the inherited full-motion update.
 	_update_next_level_button_without_motion() # Positions and reveals progression instantly at the normal reveal point.
@@ -34,11 +36,11 @@ func _update_next_level_button() -> void: # Removes the progression-button fade 
 func _draw() -> void: # Draws reaction presentation according to live motion and flash accessibility preferences.
 	if _root == null or not is_instance_valid(_root) or _root.state.mode_prompt_open: # Avoids drawing above the mode/system modal or without an active game.
 		return # Leaves the presentation layer visually empty in invalid or modal states.
-	var reduce_motion: bool = OdditySettings.reduce_motion_enabled() # Reads the shared motion preference once for this draw pass.
+	var reduce_motion: bool = _reduce_motion_enabled() # Reads the shared motion preference once for this draw pass.
 	if not reduce_motion: # Keeps the authored converging rings and completion particles only when motion is allowed.
 		_draw_active_reaction() # Draws the existing moving reaction-energy treatment.
 		_draw_burst_particles() # Draws the existing moving success-particle burst.
-	if not reduce_motion and not OdditySettings.flash_reduction_enabled(): # Requires both motion and flash effects to be allowed before drawing the expanding completion flash.
+	if not reduce_motion and not _flash_reduction_enabled(): # Requires both motion and flash effects to be allowed before drawing the expanding completion flash.
 		_draw_completion_flash() # Draws the existing short success flash and expanding ring.
 	if reduce_motion: # Uses a static information card when animation reduction is requested.
 		_draw_reduced_motion_result_card() # Presents all completion information without fades, scaling pulses, or staged text motion.
@@ -92,3 +94,16 @@ func _update_next_level_button_without_motion() -> void: # Positions and activat
 	if not _next_button_focus_assigned: # Assigns focus once when progression becomes available.
 		_root.next_button.grab_focus() # Makes Enter and Button_A immediately activate the next level.
 		_next_button_focus_assigned = true # Prevents repeated focus stealing on later frames.
+
+func _reduce_motion_enabled() -> bool: # Reads the shared reduced-motion preference through the typed application service.
+	var settings_service: OdditySettingsService = _get_oddity_settings_service() # Resolves the cached service node without using an autoload identifier.
+	return settings_service.reduce_motion_enabled() if settings_service != null else SharedSettings.DEFAULT_REDUCE_MOTION # Falls back to the canonical manifest default outside the full application tree.
+
+func _flash_reduction_enabled() -> bool: # Reads the shared flash-reduction preference through the typed application service.
+	var settings_service: OdditySettingsService = _get_oddity_settings_service() # Resolves the cached service node without using an autoload identifier.
+	return settings_service.flash_reduction_enabled() if settings_service != null else SharedSettings.DEFAULT_FLASH_REDUCTION # Falls back to the canonical manifest default outside the full application tree.
+
+func _get_oddity_settings_service() -> OdditySettingsService: # Resolves and caches the application service by its stable autoload tree path.
+	if _oddity_settings_service == null or not is_instance_valid(_oddity_settings_service): # Refreshes the cache after startup ordering or unusual tree replacement.
+		_oddity_settings_service = get_node_or_null(^"/root/OdditySettings") as OdditySettingsService # Uses a NodePath lookup so standalone script parsing remains independent from autoload injection.
+	return _oddity_settings_service # Returns the cached typed service or null when this script is checked outside the full application tree.

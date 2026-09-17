@@ -447,6 +447,14 @@ size_flags_horizontal = 3
 focus_mode = 2
 text = "Reset Level"
 
+[node name="NextButton" type="Button" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/ActionGroup"]
+visible = false
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 2
+text = "Next Level"
+
 [node name="CompletionOverlay" type="Control" parent="."]
 layout_mode = 1
 anchors_preset = 15
@@ -456,15 +464,6 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 z_index = 100
-
-[node name="NextButton" type="Button" parent="CompletionOverlay"]
-visible = false
-custom_minimum_size = Vector2(220, 42)
-layout_mode = 0
-offset_right = 220.0
-offset_bottom = 42.0
-focus_mode = 2
-text = "Next Level"
 
 [node name="ModeOverlay" type="ColorRect" parent="."]
 layout_mode = 1

@@ -1,0 +1,7 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://godot/bohr_builder_native.tscn" id="1_base"]
+[ext_resource type="Script" path="res://godot/bohr_builder_oddity_controller.gd" id="2_controller"]
+
+[node name="Bohr Builder" instance=ExtResource("1_base")]
+script = ExtResource("2_controller")

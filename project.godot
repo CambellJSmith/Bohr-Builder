@@ -9,13 +9,21 @@ config/name="Bohr Builder"
 run/main_scene="res://godot/bohr_builder_native.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 
+[autoload]
+
+ResponsiveLayout="*res://godot/ui/responsive_layout.gd"
+
+[debug]
+
+gdscript/warnings/shadowed_variable_base_class=0
+
 [display]
 
 window/size/viewport_width=1500
 window/size/viewport_height=900
 window/size/window_width_override=1500
 window/size/window_height_override=900
-window/stretch/mode="canvas_items"
+window/stretch/mode="disabled"
 
 [input]
 

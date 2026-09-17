@@ -1,0 +1,534 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://godot/bohr_builder_controller.gd" id="1_controller"]
+[ext_resource type="Theme" path="res://godot/ui/bohr_theme.tres" id="2_theme"]
+[ext_resource type="Script" path="res://godot/world/bohr_workspace.gd" id="3_workspace"]
+
+[sub_resource type="StyleBoxFlat" id="StatusStyle"]
+bg_color = Color(0.0980392, 0.109804, 0.129412, 0.88)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 1, 1, 0.1)
+content_margin_left = 10.0
+content_margin_top = 8.0
+content_margin_right = 10.0
+content_margin_bottom = 8.0
+
+[node name="Bohr Builder" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_controller")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.0901961, 0.0980392, 0.113725, 1)
+
+[node name="AppMargin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 18
+
+[node name="AppShell" type="VBoxContainer" parent="AppMargin"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="TopBar" type="HBoxContainer" parent="AppMargin/AppShell"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="TitleBlock" type="VBoxContainer" parent="AppMargin/AppShell/TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="Eyebrow" type="Label" parent="AppMargin/AppShell/TopBar/TitleBlock"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.615686, 0.647059, 0.682353, 1)
+theme_override_font_sizes/font_size = 11
+text = "Atomic Construction Lab"
+
+[node name="AppTitle" type="Label" parent="AppMargin/AppShell/TopBar/TitleBlock"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "Bohr Builder"
+
+[node name="LevelHeader" type="HBoxContainer" parent="AppMargin/AppShell/TopBar"]
+layout_mode = 2
+theme_override_constants/separation = 18
+alignment = 2
+
+[node name="ModeReadout" type="VBoxContainer" parent="AppMargin/AppShell/TopBar/LevelHeader"]
+custom_minimum_size = Vector2(110, 0)
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="ModeLabel" type="Label" parent="AppMargin/AppShell/TopBar/LevelHeader/ModeReadout"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.615686, 0.647059, 0.682353, 1)
+theme_override_font_sizes/font_size = 10
+text = "Mode"
+
+[node name="ModeBadge" type="Label" parent="AppMargin/AppShell/TopBar/LevelHeader/ModeReadout"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Not Selected"
+
+[node name="ModeButton" type="Button" parent="AppMargin/AppShell/TopBar/LevelHeader/ModeReadout"]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+focus_mode = 2
+text = "Change Mode"
+
+[node name="CampaignPicker" type="VBoxContainer" parent="AppMargin/AppShell/TopBar/LevelHeader"]
+custom_minimum_size = Vector2(230, 0)
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="LevelLabel" type="Label" parent="AppMargin/AppShell/TopBar/LevelHeader/CampaignPicker"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.615686, 0.647059, 0.682353, 1)
+theme_override_font_sizes/font_size = 10
+text = "Level"
+
+[node name="LevelSelect" type="OptionButton" parent="AppMargin/AppShell/TopBar/LevelHeader/CampaignPicker"]
+custom_minimum_size = Vector2(230, 36)
+layout_mode = 2
+focus_mode = 2
+
+[node name="TargetReadout" type="VBoxContainer" parent="AppMargin/AppShell/TopBar/LevelHeader"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="TargetLabel" type="Label" parent="AppMargin/AppShell/TopBar/LevelHeader/TargetReadout"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.615686, 0.647059, 0.682353, 1)
+theme_override_font_sizes/font_size = 10
+text = "Target"
+horizontal_alignment = 2
+
+[node name="TargetFormula" type="Label" parent="AppMargin/AppShell/TopBar/LevelHeader/TargetReadout"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "H₂"
+horizontal_alignment = 2
+
+[node name="TargetName" type="Label" parent="AppMargin/AppShell/TopBar/LevelHeader/TargetReadout"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.615686, 0.647059, 0.682353, 1)
+theme_override_font_sizes/font_size = 11
+text = "Hydrogen"
+horizontal_alignment = 2
+
+[node name="WorkspaceLayout" type="HBoxContainer" parent="AppMargin/AppShell"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 14
+
+[node name="CanvasPanel" type="Panel" parent="AppMargin/AppShell/WorkspaceLayout"]
+custom_minimum_size = Vector2(800, 600)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Workspace" type="Control" parent="AppMargin/AppShell/WorkspaceLayout/CanvasPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+focus_mode = 2
+mouse_default_cursor_shape = 3
+script = ExtResource("3_workspace")
+
+[node name="StatusBanner" type="PanelContainer" parent="AppMargin/AppShell/WorkspaceLayout/CanvasPanel"]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = -58.0
+offset_right = 760.0
+offset_bottom = -12.0
+grow_vertical = 0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StatusStyle")
+
+[node name="StatusText" type="Label" parent="AppMargin/AppShell/WorkspaceLayout/CanvasPanel/StatusBanner"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.847059, 0.866667, 0.886275, 1)
+theme_override_font_sizes/font_size = 11
+text = "Choose A Game Mode To Begin"
+autowrap_mode = 2
+
+[node name="Sidebar" type="VBoxContainer" parent="AppMargin/AppShell/WorkspaceLayout"]
+custom_minimum_size = Vector2(290, 0)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 3
+theme_override_constants/separation = 1
+
+[node name="CampaignLevelGroup" type="PanelContainer" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar"]
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/CampaignLevelGroup"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 14
+
+[node name="Content" type="VBoxContainer" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/CampaignLevelGroup/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Heading" type="HBoxContainer" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/CampaignLevelGroup/Margin/Content"]
+layout_mode = 2
+
+[node name="LevelIdentity" type="VBoxContainer" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/CampaignLevelGroup/Margin/Content/Heading"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="LevelNumber" type="Label" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/CampaignLevelGroup/Margin/Content/Heading/LevelIdentity"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.615686, 0.647059, 0.682353, 1)
+theme_override_font_sizes/font_size = 10
+text = "Level 01"
+
+[node name="LevelTitle" type="Label" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/CampaignLevelGroup/Margin/Content/Heading/LevelIdentity"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Neutral 01"
+
+[node name="LevelProgress" type="Label" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/CampaignLevelGroup/Margin/Content/Heading"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.615686, 0.647059, 0.682353, 1)
+theme_override_font_sizes/font_size = 10
+text = "1 / 200"
+
+[node name="GuidedDetails" type="VBoxContainer" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/CampaignLevelGroup/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="LevelLesson" type="Label" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/CampaignLevelGroup/Margin/Content/GuidedDetails"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.615686, 0.647059, 0.682353, 1)
+theme_override_font_sizes/font_size = 11
+text = "Build The Requested Atoms."
+autowrap_mode = 2
+
+[node name="EquationPanel" type="PanelContainer" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/CampaignLevelGroup/Margin/Content/GuidedDetails"]
+layout_mode = 2
+
+[node name="EquationMargin" type="MarginContainer" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/CampaignLevelGroup/Margin/Content/GuidedDetails/EquationPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 9
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 9
+
+[node name="EquationRow" type="HBoxContainer" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/CampaignLevelGroup/Margin/Content/GuidedDetails/EquationPanel/EquationMargin"]
+layout_mode = 2
+
+[node name="EquationLabel" type="Label" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/CampaignLevelGroup/Margin/Content/GuidedDetails/EquationPanel/EquationMargin/EquationRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.615686, 0.647059, 0.682353, 1)
+theme_override_font_sizes/font_size = 10
+text = "Reaction"
+
+[node name="EquationText" type="Label" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/CampaignLevelGroup/Margin/Content/GuidedDetails/EquationPanel/EquationMargin/EquationRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "H + H → H₂"
+
+[node name="ParticleGroup" type="PanelContainer" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar"]
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/ParticleGroup"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 14
+
+[node name="Content" type="VBoxContainer" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/ParticleGroup/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Heading" type="Label" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/ParticleGroup/Margin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Particle Cannon"
+
+[node name="ParticleGrid" type="GridContainer" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/ParticleGroup/Margin/Content"]
+layout_mode = 2
+columns = 3
+
+[node name="ProtonButton" type="Button" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/ParticleGroup/Margin/Content/ParticleGrid"]
+custom_minimum_size = Vector2(82, 60)
+layout_mode = 2
+focus_mode = 2
+toggle_mode = true
+text = "p+\nProton"
+
+[node name="NeutronButton" type="Button" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/ParticleGroup/Margin/Content/ParticleGrid"]
+custom_minimum_size = Vector2(82, 60)
+layout_mode = 2
+focus_mode = 2
+toggle_mode = true
+text = "n\nNeutron"
+
+[node name="ElectronButton" type="Button" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/ParticleGroup/Margin/Content/ParticleGrid"]
+custom_minimum_size = Vector2(82, 60)
+layout_mode = 2
+focus_mode = 2
+toggle_mode = true
+text = "e−\nElectron"
+
+[node name="InputHint" type="Label" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/ParticleGroup/Margin/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.615686, 0.647059, 0.682353, 1)
+theme_override_font_sizes/font_size = 10
+text = "Mouse, Keyboard And Controller Are Fully Supported. Aim, Fire, Inspect And Select Using Any Input Method."
+autowrap_mode = 2
+
+[node name="RequirementGroup" type="PanelContainer" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar"]
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/RequirementGroup"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 14
+
+[node name="Content" type="VBoxContainer" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/RequirementGroup/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Heading" type="Label" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/RequirementGroup/Margin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Reaction Check"
+
+[node name="RequirementList" type="VBoxContainer" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/RequirementGroup/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="RequirementHint" type="Label" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/RequirementGroup/Margin/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.615686, 0.647059, 0.682353, 1)
+theme_override_font_sizes/font_size = 10
+text = "Atoms Count Only When Particle Totals Match The Requested Isotope."
+autowrap_mode = 2
+
+[node name="FreeplayGroup" type="PanelContainer" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar"]
+visible = false
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/FreeplayGroup"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 14
+
+[node name="Content" type="VBoxContainer" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/FreeplayGroup/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Heading" type="Label" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/FreeplayGroup/Margin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Manual Reaction"
+
+[node name="FreeplaySelection" type="Label" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/FreeplayGroup/Margin/Content"]
+custom_minimum_size = Vector2(0, 62)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.615686, 0.647059, 0.682353, 1)
+text = "No Reactants Selected"
+autowrap_mode = 2
+
+[node name="FreeplayActions" type="HBoxContainer" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/FreeplayGroup/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ReactSelectButton" type="Button" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/FreeplayGroup/Margin/Content/FreeplayActions"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 2
+toggle_mode = true
+text = "Select Reactants"
+
+[node name="ClearReactantsButton" type="Button" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/FreeplayGroup/Margin/Content/FreeplayActions"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 2
+text = "Clear Selection"
+
+[node name="ReactButton" type="Button" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/FreeplayGroup/Margin/Content"]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+focus_mode = 2
+disabled = true
+text = "React Selected"
+
+[node name="FreeplayHint" type="Label" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/FreeplayGroup/Margin/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.615686, 0.647059, 0.682353, 1)
+theme_override_font_sizes/font_size = 10
+text = "Select Atoms Or Ions, Then React. Built-In Compounds Work Offline; Additional Formulas Can Be Checked Against PubChem When Internet Access Is Available."
+autowrap_mode = 2
+
+[node name="InspectorGroup" type="PanelContainer" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar"]
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/InspectorGroup"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 14
+
+[node name="Content" type="VBoxContainer" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/InspectorGroup/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Heading" type="HBoxContainer" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/InspectorGroup/Margin/Content"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/InspectorGroup/Margin/Content/Heading"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 12
+text = "Inspector"
+
+[node name="ScrapButton" type="Button" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/InspectorGroup/Margin/Content/Heading"]
+layout_mode = 2
+focus_mode = 2
+toggle_mode = true
+text = "Scrap Mode"
+
+[node name="InspectorRows" type="VBoxContainer" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/InspectorGroup/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="ActionGroup" type="HBoxContainer" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ResetButton" type="Button" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/ActionGroup"]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 2
+text = "Reset Level"
+
+[node name="NextButton" type="Button" parent="AppMargin/AppShell/WorkspaceLayout/Sidebar/ActionGroup"]
+visible = false
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 2
+text = "Next Level"
+
+[node name="ModeOverlay" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0.0392157, 0.0470588, 0.0588235, 0.92)
+
+[node name="Center" type="CenterContainer" parent="ModeOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ModePanel" type="PanelContainer" parent="ModeOverlay/Center"]
+custom_minimum_size = Vector2(760, 0)
+layout_mode = 2
+
+[node name="ModeMargin" type="MarginContainer" parent="ModeOverlay/Center/ModePanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 24
+
+[node name="ModeContent" type="VBoxContainer" parent="ModeOverlay/Center/ModePanel/ModeMargin"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Eyebrow" type="Label" parent="ModeOverlay/Center/ModePanel/ModeMargin/ModeContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.615686, 0.647059, 0.682353, 1)
+theme_override_font_sizes/font_size = 11
+text = "Choose Game Mode"
+
+[node name="ModeTitle" type="Label" parent="ModeOverlay/Center/ModePanel/ModeMargin/ModeContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "How Much Chemistry Help Do You Want?"
+
+[node name="ModeIntro" type="Label" parent="ModeOverlay/Center/ModePanel/ModeMargin/ModeContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.615686, 0.647059, 0.682353, 1)
+text = "Campaign Modes Share The Same 200 Levels. Freeplay Removes The Target And Lets You Experiment."
+autowrap_mode = 2
+
+[node name="ModeGrid" type="HBoxContainer" parent="ModeOverlay/Center/ModePanel/ModeMargin/ModeContent"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="GuidedModeButton" type="Button" parent="ModeOverlay/Center/ModePanel/ModeMargin/ModeContent/ModeGrid"]
+custom_minimum_size = Vector2(225, 180)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 2
+alignment = 0
+text = "Guided\n\nShow Me The Atoms\n\nShows The Required Atom Types And Counts, Reaction Equation, And A Short Lesson."
+
+[node name="FormulaModeButton" type="Button" parent="ModeOverlay/Center/ModePanel/ModeMargin/ModeContent/ModeGrid"]
+custom_minimum_size = Vector2(225, 180)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 2
+alignment = 0
+text = "Formula Only\n\nJust Give Me The Formula\n\nShows Only The Final Molecular Formula. Work Out Every Atom Yourself."
+
+[node name="FreeplayModeButton" type="Button" parent="ModeOverlay/Center/ModePanel/ModeMargin/ModeContent/ModeGrid"]
+custom_minimum_size = Vector2(225, 180)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 2
+alignment = 0
+text = "Freeplay\n\nOpen Atomic Sandbox\n\nBuild Any Element Or Ion, Select Species Yourself, And Attempt Real Products."

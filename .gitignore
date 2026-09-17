@@ -3,6 +3,3 @@
 
 # Local desktop export output.
 build/
-
-# Native Godot CEF dependency installed per development machine.
-addons/godot_cef/

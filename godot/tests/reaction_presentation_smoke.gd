@@ -32,6 +32,7 @@ func _run_test_after_ready() -> void: # Triggers a production-style successful r
 	if _controller.next_button.get_parent() != completion_overlay: # Requires runtime composition to remove progression from the right sidebar.
 		_fail("Next Level button was not moved into the completion overlay.") # Reports the stale sidebar placement.
 		return # Stops before testing staged presentation.
+	_controller.campaign_system.complete_level() # Mirrors production completion by unlocking the next campaign level before the presentation layer reveals progression.
 	_presenter.call("_finish_campaign_reaction") # Starts the production completion flash, particles, generated chime, result reveal, and progression timeline.
 	if _presenter._completion_formula != String(_controller.campaign_system.current_level()["formula"]): # Confirms the visible reveal uses authoritative campaign chemistry data.
 		_fail("Reaction presentation formula does not match the completed campaign target.") # Reports incorrect result capture.
